@@ -11,10 +11,14 @@ import ProductCard from '../components/ProductCard';
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { products } = useProducts();
+  const { products, refreshProducts } = useProducts();
   const product = products.find(p => p.id === id);
   const { addToCart } = useCart();
   const { toggleFavorite, isFavorite, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    refreshProducts();
+  }, [refreshProducts]);
 
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
@@ -120,7 +124,7 @@ export default function ProductDetail() {
       return;
     }
 
-    addToCart(product, selectedColor, selectedSize);
+    addToCart(product, selectedColor, selectedSize, quantity);
     setNotification({ message: 'Producto añadido al carrito', type: 'success' });
   };
 
@@ -341,7 +345,7 @@ export default function ProductDetail() {
 
           {/* Accordions */}
           <div className="border-t border-gray-200">
-            {['Descripción', 'Envío y Devoluciones', 'Cuidados'].map((title, index) => (
+            {['Descripción', 'Cuidados'].map((title, index) => (
               <div key={index} className="border-b border-gray-200">
                 <button
                   onClick={() => toggleSection(title)}

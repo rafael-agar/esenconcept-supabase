@@ -17,7 +17,7 @@ export interface Coupon {
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, color?: string, size?: string) => void;
+  addToCart: (product: Product, color?: string, size?: string, quantity?: number) => void;
   decreaseQuantity: (cartId: string) => void;
   removeFromCart: (cartId: string) => void;
   clearCart: () => void;
@@ -125,17 +125,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addToCart = (product: Product, color?: string, size?: string) => {
+  const addToCart = (product: Product, color?: string, size?: string, quantity: number = 1) => {
     setCart(prevCart => {
       const cartId = `${product.id}-${color || 'default'}-${size || 'default'}`;
       const existingItem = prevCart.find(item => item.cartId === cartId);
       
       if (existingItem) {
         return prevCart.map(item =>
-          item.cartId === cartId ? { ...item, quantity: item.quantity + 1 } : item
+          item.cartId === cartId ? { ...item, quantity: item.quantity + quantity } : item
         );
       }
-      return [...prevCart, { ...product, quantity: 1, selectedColor: color, selectedSize: size, cartId }];
+      return [...prevCart, { ...product, quantity: quantity, selectedColor: color, selectedSize: size, cartId }];
     });
     setIsCartOpen(true);
   };

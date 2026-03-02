@@ -9,8 +9,6 @@ interface User {
   email: string;
   phone?: string;
   address?: string;
-  city?: string;
-  postalCode?: string;
   role?: 'customer' | 'admin';
 }
 
@@ -18,7 +16,7 @@ export interface Order {
   id: string;
   date: string;
   total: number;
-  status: 'Pendiente' | 'Procesando' | 'Enviado' | 'Entregado';
+  status: 'Pendiente' | 'Pago Aprobado' | 'Enviado' | 'Entregado' | 'Cancelado';
   items: any[];
   paymentMethod: 'pago-movil' | 'transferencia';
   isGift?: boolean;
@@ -42,7 +40,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, phone: string, address: string) => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
   
   // Favorites
@@ -52,7 +50,7 @@ interface AuthContextType {
   
   // Orders
   orders: Order[];
-  addOrder: (order: Omit<Order, 'id' | 'date' | 'status'>) => Promise<void>;
+  addOrder: (order: Omit<Order, 'id' | 'date' | 'status'>) => Promise<Order | undefined>;
   fetchOrders: () => Promise<void>;
 }
 
@@ -238,17 +236,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setFavorites([]); // Clear favorites on logout (will be reloaded from LS by useEffect if needed, or stay empty)
   };
 
-  const register = async (name: string, email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+  const register = async (name: string, email: string, password: string, phone: string, address: string) => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: name,
+          phone,
+          address,
         }
       }
     });
+    
     if (error) throw error;
+
+    if (data.user) {
+      // Update profile with additional details
+      // We use upsert to handle cases where the trigger might have already created the row
+      // or if it hasn't created it yet.
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: data.user.id,
+          full_name: name,
+          phone: phone,
+          address: address,
+          role: 'customer'
+        });
+
+      if (profileError) {
+        console.error('Error updating profile details:', profileError);
+      }
+    }
   };
 
   const updateProfile = async (data: Partial<User>) => {
@@ -320,7 +341,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .insert([{
           user_id: user.id,
           total_amount: orderData.total,
-          status: 'pending',
+          status: 'Pendiente',
           payment_method: orderData.paymentMethod,
           is_gift: orderData.isGift || false,
           gift_details: orderData.giftDetails || null,
@@ -361,6 +382,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           paymentDetails: order.payment_details
         };
         setOrders(prev => [newOrder, ...prev]);
+        
+        return newOrder;
       }
     } catch (error) {
       console.error('Error adding order:', error);

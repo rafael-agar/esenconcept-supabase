@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Product, Category, Size } from '../data/products';
 
@@ -28,7 +28,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   const [sizes, setSizes] = useState<Size[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       console.log('Starting robust fetchData...');
@@ -36,7 +36,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       // 1. Fetch Categories
       const { data: catsData, error: catsError } = await supabase
         .from('categories')
-        .select('*');
+        .select('*')
+        .range(0, 999);
       
       if (catsError) {
         console.error('Categories Fetch Error:', catsError);
@@ -54,7 +55,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       const { data: sizesData, error: sizesError } = await supabase
         .from('sizes')
         .select('*')
-        .order('order_index', { ascending: true });
+        .order('order_index', { ascending: true })
+        .range(0, 999);
       
       if (sizesError) {
         console.error('Sizes Fetch Error:', sizesError);
@@ -68,7 +70,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       // 3. Fetch Products
       const { data: prodsData, error: prodsError } = await supabase
         .from('products')
-        .select('*');
+        .select('*')
+        .range(0, 9999);
 
       if (prodsError) {
         console.error('Products Fetch Error:', prodsError);
@@ -78,7 +81,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       // 4. Fetch Variants
       const { data: variantsData, error: variantsError } = await supabase
         .from('product_variants')
-        .select('*');
+        .select('*')
+        .range(0, 9999);
       
       if (variantsError) {
         console.error('Variants Fetch Error:', variantsError);
@@ -87,7 +91,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       // 5. Fetch Additional Images
       const { data: imagesData, error: imagesError } = await supabase
         .from('product_images')
-        .select('*');
+        .select('*')
+        .range(0, 9999);
       
       if (imagesError) {
         console.error('Images Fetch Error:', imagesError);
@@ -100,13 +105,18 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         const productImages = (imagesData || []).filter(img => img.product_id === p.id);
         const category = categoriesList.find(c => c.id === p.category_id);
 
+        // Calculate total stock from variants if they exist
+        const totalVariantStock = productVariants.length > 0 
+          ? productVariants.reduce((sum, v) => sum + (v.stock || 0), 0) 
+          : p.stock;
+
         return {
           id: p.id,
           name: p.name,
           slug: p.slug,
           description: p.description,
           price: Number(p.price),
-          stock: p.stock,
+          stock: totalVariantStock,
           image: p.image_url || 'https://via.placeholder.com/400',
           images: productImages.sort((a, b) => a.order_index - b.order_index).map(img => img.image_url),
           category: category?.name || 'Sin categoría',
@@ -136,7 +146,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -176,6 +186,11 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
       const slug = product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
+      // Calculate total stock if variants exist
+      const calculatedStock = product.variants && product.variants.length > 0
+        ? product.variants.reduce((sum, v) => sum + (v.stock || 0), 0)
+        : (product.stock || 0);
+
       // 1. Insert product
       const { data: productData, error: productError } = await supabase
         .from('products')
@@ -184,7 +199,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           slug: slug,
           description: product.description,
           price: product.price,
-          stock: product.stock || 0,
+          stock: calculatedStock,
           image_url: imageUrl,
           category_id: product.categoryId || null,
           is_featured: product.isFeatured || false,
@@ -255,6 +270,11 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         if (uploadedUrl) imageUrl = uploadedUrl;
       }
 
+      // Calculate total stock if variants exist
+      const calculatedStock = updatedProduct.variants && updatedProduct.variants.length > 0
+        ? updatedProduct.variants.reduce((sum, v) => sum + (v.stock || 0), 0)
+        : updatedProduct.stock;
+
       // 1. Update product
       const { error: productError } = await supabase
         .from('products')
@@ -264,7 +284,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           sale_price: updatedProduct.salePrice || null,
           is_sale: updatedProduct.isSale || false,
           is_new: updatedProduct.isNew || false,
-          stock: updatedProduct.stock,
+          stock: calculatedStock,
           is_featured: updatedProduct.isFeatured,
           is_active: updatedProduct.isActive !== false,
           description: updatedProduct.description,

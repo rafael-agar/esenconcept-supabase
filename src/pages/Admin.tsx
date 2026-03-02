@@ -273,6 +273,22 @@ export default function Admin() {
     }
   }, [activeTab]);
 
+  // Update total stock when variants change (New Product)
+  useEffect(() => {
+    if (newProductVariants.length > 0) {
+      const total = newProductVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+      setNewProductStock(total.toString());
+    }
+  }, [newProductVariants]);
+
+  // Update total stock when variants change (Edit Product)
+  useEffect(() => {
+    if (editVariants.length > 0) {
+      const total = editVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+      setEditStock(total.toString());
+    }
+  }, [editVariants]);
+
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setIsUploading(true);
     try {
@@ -752,12 +768,15 @@ export default function Admin() {
               </label>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Stock Total</label>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+                {newProductVariants.length > 0 ? 'Stock Total (Calculado)' : 'Stock Total'}
+              </label>
               <input 
                 type="number" 
                 value={newProductStock}
                 onChange={(e) => setNewProductStock(e.target.value)}
-                className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black"
+                readOnly={newProductVariants.length > 0}
+                className={`w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black ${newProductVariants.length > 0 ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                 required
                 min="0"
               />
@@ -1073,7 +1092,9 @@ export default function Admin() {
                           type="number" 
                           value={editStock} 
                           onChange={(e) => setEditStock(e.target.value)}
-                          className="w-16 border border-gray-300 rounded p-1 text-xs"
+                          readOnly={editVariants.length > 0}
+                          className={`w-16 border border-gray-300 rounded p-1 text-xs ${editVariants.length > 0 ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                          title={editVariants.length > 0 ? "Calculado automáticamente de las variantes" : "Stock manual"}
                         />
                       </td>
                       <td className="p-4">
@@ -1425,6 +1446,7 @@ export default function Admin() {
                         <option value="Pago Aprobado">Pago Aprobado</option>
                         <option value="Enviado">Enviado</option>
                         <option value="Entregado">Entregado</option>
+                        <option value="Cancelado">Cancelado</option>
                       </select>
                       <button 
                         onClick={() => generatePDF(order)}

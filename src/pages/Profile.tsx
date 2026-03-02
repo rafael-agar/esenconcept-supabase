@@ -16,9 +16,7 @@ export default function Profile() {
     name: '',
     email: '',
     phone: '',
-    address: '',
-    city: '',
-    postalCode: ''
+    address: ''
   });
   
   const activeTab = (searchParams.get('tab') as 'profile' | 'orders' | 'favorites') || 'profile';
@@ -33,9 +31,7 @@ export default function Profile() {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        address: user.address || '',
-        city: user.city || '',
-        postalCode: user.postalCode || ''
+        address: user.address || ''
       });
     }
   }, [user]);
@@ -125,26 +121,6 @@ export default function Profile() {
                   className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:border-black"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Ciudad</label>
-                <input
-                  type="text"
-                  name="city"
-                  value={editForm.city}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:border-black"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Código Postal</label>
-                <input
-                  type="text"
-                  name="postalCode"
-                  value={editForm.postalCode}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:border-black"
-                />
-              </div>
             </div>
           </div>
 
@@ -185,14 +161,6 @@ export default function Profile() {
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Dirección</label>
                 <p className="text-gray-900 font-medium">{user.address || 'No registrada'}</p>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Ciudad</label>
-                <p className="text-gray-900 font-medium">{user.city || 'No registrada'}</p>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Código Postal</label>
-                <p className="text-gray-900 font-medium">{user.postalCode || 'No registrado'}</p>
               </div>
             </div>
           </div>

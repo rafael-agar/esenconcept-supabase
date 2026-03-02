@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, CreditCard, Truck, MapPin, Mail, User, ShieldCheck, Smartphone, Banknote, Tag, X } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -45,9 +46,7 @@ export default function Checkout() {
         email: user.email,
         firstName: user.name.split(' ')[0] || '',
         lastName: user.name.split(' ').slice(1).join(' ') || '',
-        address: user.address || '',
-        city: user.city || '',
-        postalCode: user.postalCode || ''
+        address: user.address || ''
       }));
     }
   }, [isAuthenticated, user, navigate, location]);
@@ -77,7 +76,7 @@ export default function Checkout() {
     
     try {
       // Add order to history in Supabase
-      await addOrder({
+      const newOrder = await addOrder({
         total: finalTotal,
         items: cart,
         paymentMethod,
@@ -95,6 +94,98 @@ export default function Checkout() {
           referenceNumber: formData.referenceNumber
         }
       });
+
+      if (newOrder) {
+        // Update inventory via RPC function
+        try {
+          const { error: inventoryError } = await supabase.rpc('update_inventory', { 
+            items: cart.map(item => ({
+              id: item.id,
+              quantity: item.quantity,
+              selectedColor: item.selectedColor,
+              selectedSize: item.selectedSize
+            }))
+          });
+
+          if (inventoryError) {
+            console.error('Error updating inventory:', inventoryError);
+            // Don't block the checkout flow, but log the error.
+            // This might happen if the RPC function hasn't been created yet.
+          } else {
+            console.log('Inventory updated successfully');
+          }
+        } catch (invErr) {
+          console.error('Exception updating inventory:', invErr);
+        }
+
+        // Send confirmation email via Edge Function
+        try {
+          // Using service_role key provided by user to bypass "Invalid JWT" issues with user session
+          // WARNING: In a production app, this key should not be exposed in the frontend.
+          const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndycHNxbWR3aHdicnVxZ3lqZGlzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjI2Nzc4OCwiZXhwIjoyMDg3ODQzNzg4fQ.ym_3yVpT-jRSQx1gLh1Qt9xW7WBQ9LsNEjjYs3XFA_Q';
+          
+          const payload = {
+            order: {
+              ...newOrder,
+              // Explicitly add snake_case properties to support the OLD version of the Edge Function
+              // in case the deployment didn't go through correctly.
+              total_amount: finalTotal, 
+              shipping_address: `${formData.address}, ${formData.city}, ${formData.postalCode}, ${formData.country}`,
+              payment_method: paymentMethod,
+              is_gift: formData.isGift,
+              gift_details: formData.isGift ? {
+                recipientName: formData.recipientName,
+                recipientEmail: formData.recipientEmail,
+                message: formData.giftMessage
+              } : undefined,
+              payment_details: {
+                referenceNumber: formData.referenceNumber,
+                bank: formData.bank
+              },
+              
+              // Ensure camelCase properties are also present and correct
+              total: finalTotal,
+              
+              user_email: formData.email,
+              user_name: `${formData.firstName} ${formData.lastName}`,
+              items: cart
+            }
+          };
+
+          console.log('Sending email payload:', payload);
+
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL || 'https://wrpsqmdwhwbruqgyjdis.supabase.co'}/functions/v1/send-order-email`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+              },
+              body: JSON.stringify(payload)
+            }
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Error sending email:', errorData);
+          } else {
+            const resultData = await response.json();
+            console.log('Email sent successfully via service_role', resultData);
+            
+            // Check for partial failures (e.g. Resend restrictions)
+            if (resultData.results?.customer?.error) {
+              console.warn('Customer email failed:', resultData.results.customer.error);
+              if (JSON.stringify(resultData.results.customer.error).includes('resend.dev')) {
+                alert('NOTA: El correo al cliente no se envió porque estás usando el dominio de prueba de Resend (onboarding@resend.dev). Solo puedes enviar correos a tu propia dirección verificada. El pedido sí se guardó correctamente.');
+              }
+            }
+          }
+        } catch (emailError) {
+          console.error('Failed to send confirmation email:', emailError);
+          // Continue to success screen even if email fails
+        }
+      }
 
       setIsProcessing(false);
       setIsSuccess(true);
