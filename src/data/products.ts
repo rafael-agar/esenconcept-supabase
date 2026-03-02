@@ -21,6 +21,7 @@ export interface Product {
   name: string;
   slug?: string;
   description?: string;
+  longDescription?: string;
   price: number;
   salePrice?: number;
   stock?: number;

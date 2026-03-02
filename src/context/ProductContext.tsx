@@ -115,6 +115,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           name: p.name,
           slug: p.slug,
           description: p.description,
+          longDescription: p.long_description,
           price: Number(p.price),
           stock: totalVariantStock,
           image: p.image_url || 'https://via.placeholder.com/400',
@@ -198,6 +199,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           name: product.name,
           slug: slug,
           description: product.description,
+          long_description: product.longDescription,
           price: product.price,
           stock: calculatedStock,
           image_url: imageUrl,
@@ -288,6 +290,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           is_featured: updatedProduct.isFeatured,
           is_active: updatedProduct.isActive !== false,
           description: updatedProduct.description,
+          long_description: updatedProduct.longDescription,
           category_id: updatedProduct.categoryId,
           image_url: imageUrl
         })
