@@ -22,6 +22,7 @@ export interface Product {
   slug?: string;
   description?: string;
   longDescription?: string;
+  careInstructions?: string;
   price: number;
   salePrice?: number;
   stock?: number;

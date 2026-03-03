@@ -16,6 +16,7 @@ interface OrderItem {
   isSale?: boolean;
   selectedColor?: string;
   selectedSize?: string;
+  image?: string;
 }
 
 interface Order {
@@ -40,7 +41,7 @@ interface Order {
 }
 
 const generateEmailHtml = (order: Order, isCustomer: boolean) => {
-  const logoUrl = "https://esenconcept.netlify.app/logo.png";
+  const logoUrl = process.env.VITE_LOGO;
   const date = new Date().toLocaleDateString('es-ES', { 
     year: 'numeric', 
     month: 'long', 
@@ -52,11 +53,16 @@ const generateEmailHtml = (order: Order, isCustomer: boolean) => {
   const itemsHtml = order.items.map(item => `
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #eee;">
-        <strong>${item.name}</strong><br>
-        <span style="font-size: 12px; color: #666;">
-          ${item.selectedColor ? `Color: ${item.selectedColor}` : ''} 
-          ${item.selectedSize ? `| Talla: ${item.selectedSize}` : ''}
-        </span>
+        <div style="display: flex; align-items: center;">
+          ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px; border-radius: 4px;">` : ''}
+          <div>
+            <strong>${item.name}</strong><br>
+            <span style="font-size: 12px; color: #666;">
+              ${item.selectedColor ? `Color: ${item.selectedColor}` : ''} 
+              ${item.selectedSize ? `| Talla: ${item.selectedSize}` : ''}
+            </span>
+          </div>
+        </div>
       </td>
       <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
       <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">

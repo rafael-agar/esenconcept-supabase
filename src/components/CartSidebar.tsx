@@ -12,6 +12,22 @@ export default function CartSidebar() {
   const navigate = useNavigate();
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
+  const [notification, setNotification] = useState<{ message: string, type: 'error' | 'success' } | null>(null);
+
+  // Clear notification after 3 seconds
+  React.useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  const handleIncreaseQuantity = (item: any) => {
+    const success = addToCart(item, item.selectedColor, item.selectedSize);
+    if (!success) {
+      setNotification({ message: 'Stock máximo alcanzado', type: 'error' });
+    }
+  };
 
   const handleCheckout = () => {
     setIsCartOpen(false);
@@ -52,6 +68,22 @@ export default function CartSidebar() {
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed inset-y-0 right-0 w-full max-w-md bg-white z-50 shadow-2xl flex flex-col"
           >
+            {/* Notification */}
+            <AnimatePresence>
+              {notification && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20, x: '-50%' }}
+                  animate={{ opacity: 1, y: 0, x: '-50%' }}
+                  exit={{ opacity: 0, y: -20, x: '-50%' }}
+                  className={`absolute top-20 left-1/2 z-[60] px-4 py-2 rounded-full shadow-lg text-white text-xs font-bold uppercase tracking-widest whitespace-nowrap ${
+                    notification.type === 'error' ? 'bg-red-500' : 'bg-black'
+                  }`}
+                >
+                  {notification.message}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <h2 className="text-xl font-serif font-bold">Tu Carrito</h2>
               <button
@@ -107,7 +139,7 @@ export default function CartSidebar() {
                           </button>
                           <span className="px-2 text-xs font-medium">{item.quantity}</span>
                           <button 
-                            onClick={() => addToCart(item, item.selectedColor, item.selectedSize)}
+                            onClick={() => handleIncreaseQuantity(item)}
                             className="p-1 hover:bg-gray-50 text-gray-500"
                           >
                             <Plus size={14} />

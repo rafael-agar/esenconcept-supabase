@@ -59,7 +59,7 @@ export default function Navbar() {
             <div className="flex-1 flex items-center justify-center md:justify-start md:flex-none md:w-auto">
               <Link to="/" className="text-2xl font-serif font-bold tracking-wider">
                 <img 
-                  src="https://esenconcept.netlify.app/logo.png" 
+                  src="https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/ESEN%20logo%20negro.png" 
                   alt="ESEN CONCEPT" 
                   className="h-8 w-auto object-contain"
                   onError={(e) => {

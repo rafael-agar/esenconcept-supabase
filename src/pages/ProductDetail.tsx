@@ -113,19 +113,49 @@ export default function ProductDetail() {
     setOpenSection(openSection === section ? null : section);
   };
 
+  // Calculate current available stock based on selection or product total
+  const currentStock = product.variants && product.variants.length > 0
+    ? (selectedVariant?.stock || 0)
+    : (product.stock || 0);
+
+  // Reset quantity if it exceeds new stock limit when variant changes
+  useEffect(() => {
+    if (quantity > currentStock && currentStock > 0) {
+      setQuantity(currentStock);
+    }
+  }, [currentStock]);
+
+  const handleIncreaseQuantity = () => {
+    if (quantity < currentStock) {
+      setQuantity(quantity + 1);
+    } else {
+      setNotification({ message: 'Has alcanzado el stock máximo disponible', type: 'error' });
+    }
+  };
+
   const handleAddToCart = () => {
     if (product.variants && product.variants.length > 0 && !selectedVariant) {
       setNotification({ message: 'Por favor selecciona color y talla', type: 'error' });
       return;
     }
     
-    if (selectedVariant && selectedVariant.stock < quantity) {
-      setNotification({ message: 'No hay suficiente stock para esta combinación', type: 'error' });
+    if (currentStock === 0) {
+      setNotification({ message: 'Producto agotado', type: 'error' });
       return;
     }
 
-    addToCart(product, selectedColor, selectedSize, quantity);
-    setNotification({ message: 'Producto añadido al carrito', type: 'success' });
+    if (quantity > currentStock) {
+      setNotification({ message: 'No hay suficiente stock', type: 'error' });
+      return;
+    }
+
+    const success = addToCart(product, selectedColor, selectedSize, quantity);
+    
+    if (success) {
+      setNotification({ message: 'Producto añadido al carrito', type: 'success' });
+    } else {
+      setNotification({ message: 'No puedes añadir más cantidad de la disponible en stock (revisa tu carrito)', type: 'error' });
+    }
   };
 
   const handleFavoriteClick = () => {
@@ -304,17 +334,15 @@ export default function ProductDetail() {
                 </button>
                 <span className="w-12 text-center font-medium">{quantity}</span>
                 <button 
-                  onClick={() => setQuantity(quantity + 1)}
+                  onClick={handleIncreaseQuantity}
                   className="p-3 hover:bg-gray-50"
                 >
                   <Plus size={16} />
                 </button>
               </div>
-              {selectedColor && selectedSize && (
-                <span className={`text-sm font-medium ${(!selectedVariant || selectedVariant.stock === 0) ? 'text-red-500' : (selectedVariant.stock < 5 ? 'text-orange-500' : 'text-green-600')}`}>
-                  {(!selectedVariant || selectedVariant.stock === 0)
-                    ? 'No Disponible' 
-                    : `Stock disponible: ${selectedVariant.stock}`}
+              {((product.variants && product.variants.length > 0) ? (selectedColor && selectedSize) : true) && (
+                <span className={`text-sm font-medium ${currentStock === 0 ? 'text-red-500' : (currentStock < 5 ? 'text-orange-500' : 'text-green-600')}`}>
+                  {currentStock === 0 ? 'Agotado' : `Stock disponible: ${currentStock}`}
                 </span>
               )}
             </div>
@@ -323,14 +351,14 @@ export default function ProductDetail() {
           <div className="flex gap-4 mb-12">
             <button 
               onClick={handleAddToCart}
-              disabled={selectedVariant && selectedVariant.stock === 0}
+              disabled={currentStock === 0 && (product.variants && product.variants.length > 0 ? !!selectedVariant : true)}
               className={`flex-1 py-4 text-sm font-bold uppercase tracking-widest transition-colors ${
-                selectedVariant && selectedVariant.stock === 0 
+                (currentStock === 0 && (product.variants && product.variants.length > 0 ? !!selectedVariant : true))
                 ? 'bg-gray-300 cursor-not-allowed' 
                 : 'bg-black text-white hover:bg-gray-800'
               }`}
             >
-              {selectedVariant && selectedVariant.stock === 0 ? 'Agotado' : 'Agregar al Carrito'}
+              {(currentStock === 0 && (product.variants && product.variants.length > 0 ? !!selectedVariant : true)) ? 'Agotado' : 'Agregar al Carrito'}
             </button>
             <button 
               onClick={handleFavoriteClick}
@@ -345,31 +373,53 @@ export default function ProductDetail() {
 
           {/* Accordions */}
           <div className="border-t border-gray-200">
-            {['Descripción', 'Cuidados'].map((title, index) => (
-              <div key={index} className="border-b border-gray-200">
-                <button
-                  onClick={() => toggleSection(title)}
-                  className="w-full flex justify-between items-center py-4 text-left font-bold uppercase tracking-widest text-sm hover:text-gray-600"
-                >
-                  {title}
-                  {openSection === title ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </button>
-                <AnimatePresence>
-                  {openSection === title && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <p className="pb-4 text-gray-600 text-sm leading-relaxed">
-                        Lorem ipsum dolor sit amet, consectetur adipisicing elit. Mollitia aliquid blanditiis soluta enim. Eius, fugit aspernatur. Iure veniam aperiam quas ex commodi ad. Fuga sapiente fugiat quod dolorem earum pariatur!
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
+            <div className="border-b border-gray-200">
+              <button
+                onClick={() => toggleSection('description')}
+                className="w-full flex justify-between items-center py-4 text-left font-bold uppercase tracking-widest text-sm hover:text-gray-600"
+              >
+                Descripción
+                {openSection === 'description' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+              <AnimatePresence>
+                {openSection === 'description' && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pb-4 text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+                      {product.longDescription || product.description || 'Sin descripción disponible.'}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="border-b border-gray-200">
+              <button
+                onClick={() => toggleSection('care')}
+                className="w-full flex justify-between items-center py-4 text-left font-bold uppercase tracking-widest text-sm hover:text-gray-600"
+              >
+                Cuidados
+                {openSection === 'care' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+              <AnimatePresence>
+                {openSection === 'care' && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pb-4 text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+                      {product.careInstructions || 'No hay instrucciones de cuidado disponibles.'}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>

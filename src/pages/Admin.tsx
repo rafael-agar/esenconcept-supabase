@@ -119,6 +119,7 @@ export default function Admin() {
   const [editStock, setEditStock] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editLongDescription, setEditLongDescription] = useState('');
+  const [editCareInstructions, setEditCareInstructions] = useState('');
   const [editIsFeatured, setEditIsFeatured] = useState(false);
   const [editIsNew, setEditIsNew] = useState(false);
   const [editIsSale, setEditIsSale] = useState(false);
@@ -150,6 +151,7 @@ export default function Admin() {
   const [newProductCategory, setNewProductCategory] = useState('');
   const [newProductDescription, setNewProductDescription] = useState('');
   const [newProductLongDescription, setNewProductLongDescription] = useState('');
+  const [newProductCareInstructions, setNewProductCareInstructions] = useState('');
   const [newProductIsNew, setNewProductIsNew] = useState(false);
   const [newProductIsSale, setNewProductIsSale] = useState(false);
   const [newProductSalePrice, setNewProductSalePrice] = useState('');
@@ -606,6 +608,7 @@ export default function Admin() {
     setEditStock(product.stock?.toString() || '0');
     setEditDescription(product.description || '');
     setEditLongDescription(product.longDescription || '');
+    setEditCareInstructions(product.careInstructions || '');
     setEditIsFeatured(product.isFeatured || false);
     setEditIsNew(product.isNew || false);
     setEditIsSale(product.isSale || false);
@@ -637,6 +640,7 @@ export default function Admin() {
         stock: Number(editStock),
         description: editDescription,
         longDescription: editLongDescription,
+        careInstructions: editCareInstructions,
         isFeatured: editIsFeatured,
         variants: editVariants as any
       }, editProductImage || undefined, editAdditionalImages.length > 0 ? editAdditionalImages : undefined);
@@ -664,6 +668,7 @@ export default function Admin() {
         stock: Number(newProductStock) || 0,
         description: newProductDescription,
         longDescription: newProductLongDescription,
+        careInstructions: newProductCareInstructions,
         categoryId: newProductCategory,
         category: categories.find(c => c.id === newProductCategory)?.name || '',
         image: '', // Will be handled by addProduct if file exists
@@ -680,6 +685,7 @@ export default function Admin() {
       setNewProductStock('');
       setNewProductDescription('');
       setNewProductLongDescription('');
+      setNewProductCareInstructions('');
       setNewProductCategory('');
       setNewProductImage(null);
       setNewProductAdditionalImages([]);
@@ -807,6 +813,15 @@ export default function Admin() {
                 onChange={(e) => setNewProductLongDescription(e.target.value)}
                 className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black h-32"
                 placeholder="Descripción detallada del producto..."
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Cuidados</label>
+              <textarea 
+                value={newProductCareInstructions}
+                onChange={(e) => setNewProductCareInstructions(e.target.value)}
+                className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black h-24"
+                placeholder="Instrucciones de cuidado..."
               />
             </div>
             <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -990,6 +1005,12 @@ export default function Admin() {
                             onChange={(e) => setEditLongDescription(e.target.value)}
                             className="border border-gray-300 rounded p-1 text-xs w-full h-24"
                             placeholder="Descripción Larga"
+                          />
+                          <textarea 
+                            value={editCareInstructions}
+                            onChange={(e) => setEditCareInstructions(e.target.value)}
+                            className="border border-gray-300 rounded p-1 text-xs w-full h-24 mb-2"
+                            placeholder="Cuidados"
                           />
                           <div className="bg-gray-50 p-2 rounded border border-gray-100">
                             <div className="flex justify-between items-center mb-2">

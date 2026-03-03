@@ -17,7 +17,7 @@ export interface Coupon {
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, color?: string, size?: string, quantity?: number) => void;
+  addToCart: (product: Product, color?: string, size?: string, quantity?: number) => boolean;
   decreaseQuantity: (cartId: string) => void;
   removeFromCart: (cartId: string) => void;
   clearCart: () => void;
@@ -125,11 +125,25 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addToCart = (product: Product, color?: string, size?: string, quantity: number = 1) => {
+  const addToCart = (product: Product, color?: string, size?: string, quantity: number = 1): boolean => {
+    // Determine available stock
+    let availableStock = product.stock || 0;
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.color === color && v.size === size);
+      if (variant) {
+        availableStock = variant.stock;
+      }
+    }
+
+    const cartId = `${product.id}-${color || 'default'}-${size || 'default'}`;
+    const existingItem = cart.find(item => item.cartId === cartId);
+    const currentQuantity = existingItem ? existingItem.quantity : 0;
+
+    if (currentQuantity + quantity > availableStock) {
+      return false;
+    }
+
     setCart(prevCart => {
-      const cartId = `${product.id}-${color || 'default'}-${size || 'default'}`;
-      const existingItem = prevCart.find(item => item.cartId === cartId);
-      
       if (existingItem) {
         return prevCart.map(item =>
           item.cartId === cartId ? { ...item, quantity: item.quantity + quantity } : item
@@ -138,6 +152,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       return [...prevCart, { ...product, quantity: quantity, selectedColor: color, selectedSize: size, cartId }];
     });
     setIsCartOpen(true);
+    return true;
   };
 
   const decreaseQuantity = (cartId: string) => {

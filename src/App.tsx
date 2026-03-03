@@ -13,6 +13,10 @@ import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
 import About from './pages/About';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import ReturnsAndWarranty from './pages/ReturnsAndWarranty';
+import ShippingInfo from './pages/ShippingInfo';
+import FAQ from './pages/FAQ';
 import Admin from './pages/Admin';
 import AdminRoute from './components/AdminRoute';
 
@@ -32,6 +36,10 @@ function AppContent() {
             <Route path="/login" element={<Login />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/about" element={<About />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/returns-and-warranty" element={<ReturnsAndWarranty />} />
+            <Route path="/shipping-info" element={<ShippingInfo />} />
+            <Route path="/faq" element={<FAQ />} />
             <Route path="/my-admin" element={
               <AdminRoute>
                 <Admin />
