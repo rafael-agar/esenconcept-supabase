@@ -269,6 +269,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .upsert({
           id: data.user.id,
           full_name: name,
+          email: email,
           phone: phone,
           address: address,
           role: 'customer'

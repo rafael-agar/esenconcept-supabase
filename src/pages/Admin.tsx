@@ -1866,9 +1866,41 @@ export default function Admin() {
     </div>
   );
 
+  const downloadUsersCSV = () => {
+    const headers = ['Nombre', 'Email', 'Teléfono', 'Dirección', 'Rol', 'Fecha Registro'];
+    const csvContent = [
+      headers.join(','),
+      ...users.map(u => [
+        `"${u.full_name || ''}"`,
+        `"${u.email || ''}"`,
+        `"${u.phone || ''}"`,
+        `"${u.address || ''}"`,
+        `"${u.role || ''}"`,
+        `"${u.created_at || ''}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'usuarios.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const renderUsers = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-serif font-bold mb-6">Gestión de Usuarios</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-serif font-bold">Gestión de Usuarios</h2>
+        <button 
+          onClick={downloadUsersCSV}
+          className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold uppercase flex items-center gap-2 hover:bg-gray-800 transition-colors"
+        >
+          <FileText size={18} /> Descargar CSV
+        </button>
+      </div>
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {usersLoading ? (
           <div className="p-12 flex justify-center">
@@ -1880,6 +1912,8 @@ export default function Admin() {
               <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
                 <th className="p-4 font-bold">Usuario</th>
                 <th className="p-4 font-bold">Email</th>
+                <th className="p-4 font-bold">Teléfono</th>
+                <th className="p-4 font-bold">Dirección</th>
                 <th className="p-4 font-bold">Rol</th>
                 <th className="p-4 font-bold">Fecha Registro</th>
               </tr>
@@ -1896,6 +1930,8 @@ export default function Admin() {
                     </div>
                   </td>
                   <td className="p-4 text-sm text-gray-600">{u.email}</td>
+                  <td className="p-4 text-sm text-gray-600">{u.phone || 'N/A'}</td>
+                  <td className="p-4 text-sm text-gray-600 max-w-xs truncate">{u.address || 'N/A'}</td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
@@ -1910,7 +1946,7 @@ export default function Admin() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-gray-500">
+                  <td colSpan={6} className="p-8 text-center text-gray-500">
                     No hay usuarios registrados.
                   </td>
                 </tr>
