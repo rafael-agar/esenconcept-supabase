@@ -60,21 +60,42 @@ export default function Footer() {
           </div>
 
           {/* Newsletter */}
-          <div>
-            <h4 className="text-sm font-bold uppercase tracking-widest mb-6">Suscríbete</h4>
-            <p className="text-gray-400 text-sm mb-4">
-              Recibe las últimas novedades y ofertas exclusivas.
-            </p>
-            <form className="flex flex-col space-y-2">
-              <input
-                type="email"
-                placeholder="Tu correo electrónico"
-                className="bg-transparent border border-gray-700 text-white px-4 py-3 text-sm focus:outline-none focus:border-white transition-colors"
-              />
-              <button className="bg-white text-black px-4 py-3 text-sm font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors">
-                Suscribirse
-              </button>
-            </form>
+          <div className="relative p-8 rounded-2xl bg-gradient-to-br from-zinc-900 via-black to-zinc-900 border border-zinc-800 shadow-2xl overflow-hidden group">
+            {/* Decorative background elements */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] group-hover:bg-amber-500/20 transition-colors duration-700"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-[60px]"></div>
+            
+            <div className="relative z-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 mb-4">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+                <span className="text-xs font-bold uppercase tracking-widest text-amber-500">Beneficios Exclusivos</span>
+              </div>
+              
+              <h4 className="text-xl font-serif mb-2 text-white">
+                Únete a la lista
+              </h4>
+              
+              <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                Recibe las últimas novedades y <strong className="text-white font-medium">ofertas exclusivas</strong>. Suscríbete hoy y podrías <strong className="text-amber-400 font-medium">ganarte un cupón</strong> de descuento para tu próxima compra.
+              </p>
+              
+              <form className="flex flex-col space-y-3">
+                <div className="relative">
+                  <input
+                    type="email"
+                    placeholder="Tu correo electrónico"
+                    className="w-full bg-black/50 border border-zinc-700 text-white px-4 py-3.5 text-sm rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all placeholder:text-zinc-600"
+                  />
+                </div>
+                <button className="w-full bg-white text-black px-4 py-3.5 text-sm font-bold uppercase tracking-widest rounded-xl hover:bg-amber-50 hover:text-amber-900 hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(251,191,36,0.2)]">
+                  Suscribirme
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                </button>
+              </form>
+            </div>
           </div>
         </div>
 

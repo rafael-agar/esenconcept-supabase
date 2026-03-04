@@ -98,11 +98,22 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         console.error('Images Fetch Error:', imagesError);
       }
 
-      console.log(`Fetched: ${prodsData?.length} products, ${variantsData?.length} variants, ${imagesData?.length} images`);
+      // 6. Fetch Bundle Items
+      const { data: bundleData, error: bundleError } = await supabase
+        .from('product_bundle_items')
+        .select('*')
+        .range(0, 9999);
+      
+      if (bundleError) {
+        console.warn('Bundle Items Fetch Error (table might not exist yet):', bundleError);
+      }
+
+      console.log(`Fetched: ${prodsData?.length} products, ${variantsData?.length} variants, ${imagesData?.length} images, ${bundleData?.length || 0} bundle items`);
 
       const formattedProducts = (prodsData || []).map(p => {
         const productVariants = (variantsData || []).filter(v => v.product_id === p.id);
         const productImages = (imagesData || []).filter(img => img.product_id === p.id);
+        const productBundleItems = (bundleData || []).filter(b => b.parent_product_id === p.id);
         const category = categoriesList.find(c => c.id === p.category_id);
 
         // Calculate total stock from variants if they exist
@@ -128,6 +139,12 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           salePrice: p.sale_price ? Number(p.sale_price) : undefined,
           isFeatured: !!p.is_featured,
           isActive: p.is_active !== false,
+          isBundle: !!p.is_bundle,
+          bundleItems: productBundleItems.map(b => ({
+            productId: b.child_product_id,
+            variantId: b.child_variant_id,
+            quantity: b.quantity
+          })),
           variants: productVariants.map(v => ({
             id: v.id,
             productId: v.product_id,
@@ -210,6 +227,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           is_new: product.isNew || false,
           is_sale: product.isSale || false,
           sale_price: product.salePrice || null,
+          is_bundle: product.isBundle || false,
           is_active: true
         }])
         .select()
@@ -217,7 +235,23 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
       if (productError) throw productError;
 
-      // 2. Insert additional images if any
+      // 2. Insert bundle items if any
+      if (product.isBundle && product.bundleItems && product.bundleItems.length > 0) {
+        const bundleItemsToInsert = product.bundleItems.map(item => ({
+          parent_product_id: productData.id,
+          child_product_id: item.productId,
+          child_variant_id: item.variantId || null,
+          quantity: item.quantity
+        }));
+
+        const { error: bundleError } = await supabase
+          .from('product_bundle_items')
+          .insert(bundleItemsToInsert);
+
+        if (bundleError) throw bundleError;
+      }
+
+      // 3. Insert additional images if any
       if (additionalImages && additionalImages.length > 0) {
         const uploadPromises = additionalImages.map(file => uploadImage(file));
         const uploadedUrls = await Promise.all(uploadPromises);
@@ -295,13 +329,39 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           long_description: updatedProduct.longDescription,
           care_instructions: updatedProduct.careInstructions,
           category_id: updatedProduct.categoryId,
+          is_bundle: updatedProduct.isBundle || false,
           image_url: imageUrl
         })
         .eq('id', updatedProduct.id);
 
       if (productError) throw productError;
 
-      // 2. Handle additional images
+      // 2. Handle bundle items
+      if (updatedProduct.isBundle && updatedProduct.bundleItems) {
+        // Delete existing bundle items
+        await supabase
+          .from('product_bundle_items')
+          .delete()
+          .eq('parent_product_id', updatedProduct.id);
+
+        // Insert new bundle items
+        if (updatedProduct.bundleItems.length > 0) {
+          const bundleItemsToInsert = updatedProduct.bundleItems.map(item => ({
+            parent_product_id: updatedProduct.id,
+            child_product_id: item.productId,
+            child_variant_id: item.variantId || null,
+            quantity: item.quantity
+          }));
+
+          const { error: bundleError } = await supabase
+            .from('product_bundle_items')
+            .insert(bundleItemsToInsert);
+
+          if (bundleError) throw bundleError;
+        }
+      }
+
+      // 3. Handle additional images
       // If additionalImages is provided, we replace all additional images
       if (additionalImages) {
         // Delete existing additional images

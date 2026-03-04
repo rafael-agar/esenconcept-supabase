@@ -3,10 +3,11 @@ import { X, Minus, Plus, Trash2, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import FreeShippingProgress from './FreeShippingProgress';
 
 export default function CartSidebar() {
   const { 
-    cart, removeFromCart, isCartOpen, setIsCartOpen, cartTotal, addToCart, decreaseQuantity, 
+    cart, removeFromCart, isCartOpen, setIsCartOpen, cartTotal, cartSubtotal, saleDiscount, addToCart, decreaseQuantity, 
     shippingCost, finalTotal, applyCoupon, removeCoupon, appliedCoupon, discountAmount 
   } = useCart();
   const navigate = useNavigate();
@@ -95,6 +96,8 @@ export default function CartSidebar() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {cart.length > 0 && <FreeShippingProgress />}
+              
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-4">
                   <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center">
@@ -195,12 +198,19 @@ export default function CartSidebar() {
 
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-500">Subtotal</span>
-                  <span className="font-medium">${cartTotal.toFixed(2)}</span>
+                  <span className="font-medium">${cartSubtotal.toFixed(2)}</span>
                 </div>
+
+                {saleDiscount > 0 && (
+                  <div className="flex justify-between items-center text-sm text-red-500">
+                    <span>Ahorro en Ofertas</span>
+                    <span className="font-medium">-${saleDiscount.toFixed(2)}</span>
+                  </div>
+                )}
                 
                 {appliedCoupon && (
                   <div className="flex justify-between items-center text-sm text-green-600">
-                    <span>Descuento ({appliedCoupon.discountPercentage}%)</span>
+                    <span>Cupón ({appliedCoupon.discountPercentage}%)</span>
                     <span className="font-medium">-${discountAmount.toFixed(2)}</span>
                   </div>
                 )}

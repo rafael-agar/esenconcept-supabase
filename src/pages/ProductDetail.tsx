@@ -431,7 +431,7 @@ export default function ProductDetail() {
             <h2 className="text-3xl font-serif font-bold mb-4">También te podría gustar</h2>
             <div className="w-12 h-0.5 bg-black mx-auto"></div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 sm:gap-x-8 gap-y-8 sm:gap-y-12">
             {relatedProducts.map((relatedProduct) => (
               <ProductCard key={relatedProduct.id} product={relatedProduct} />
             ))}
@@ -446,7 +446,7 @@ export default function ProductDetail() {
             <h2 className="text-3xl font-serif font-bold mb-4">Vistos Recientemente</h2>
             <div className="w-12 h-0.5 bg-black mx-auto"></div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 sm:gap-x-8 gap-y-8 sm:gap-y-12">
             {recentlyViewed.map((viewedProduct) => (
               <ProductCard key={viewedProduct.id} product={viewedProduct} />
             ))}

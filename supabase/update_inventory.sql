@@ -9,29 +9,33 @@ as $$
 declare
   item jsonb;
   v_product_id uuid;
+  v_variant_id uuid;
   v_quantity int;
-  v_color text;
-  v_size text;
 begin
   for item in select * from jsonb_array_elements(items)
   loop
     v_product_id := (item->>'id')::uuid;
+    v_variant_id := (item->>'variantId')::uuid;
     v_quantity := (item->>'quantity')::int;
-    v_color := item->>'selectedColor';
-    v_size := item->>'selectedSize';
 
-    -- 1. Actualizar stock en product_variants si existen color y talla
-    -- Nota: Verificamos si color y talla no son nulos y no son strings vacíos o 'undefined'
-    if v_color is not null and v_color <> '' and v_size is not null and v_size <> '' then
+    -- 1. Actualizar stock en product_variants si se proporciona variantId
+    if v_variant_id is not null then
+      update product_variants
+      set stock = stock - v_quantity
+      where id = v_variant_id;
+    -- 2. Si no hay variantId pero hay color/talla (retrocompatibilidad)
+    elsif item->>'selectedColor' is not null and item->>'selectedColor' <> '' 
+          and item->>'selectedSize' is not null and item->>'selectedSize' <> '' then
       update product_variants
       set stock = stock - v_quantity
       where product_id = v_product_id
-      and color = v_color
-      and size = v_size;
+      and color = item->>'selectedColor'
+      and size = item->>'selectedSize';
     end if;
 
-    -- 2. Actualizar stock general en products
-    -- Esto es importante para productos sin variantes o para mantener el total sincronizado
+    -- 3. Actualizar stock general en products
+    -- Importante: Si el producto tiene variantes, el stock total se recalcula en el frontend,
+    -- pero actualizamos la tabla products por consistencia.
     update products
     set stock = stock - v_quantity
     where id = v_product_id;

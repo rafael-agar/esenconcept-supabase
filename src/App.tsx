@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import CartSidebar from './components/CartSidebar';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import { ProductProvider } from './context/ProductContext';
@@ -11,6 +12,8 @@ import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Profile from './pages/Profile';
 import About from './pages/About';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -23,6 +26,7 @@ import AdminRoute from './components/AdminRoute';
 function AppContent() {
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen bg-white font-sans text-gray-900 flex flex-col">
         <Navbar />
         <CartSidebar />
@@ -34,6 +38,8 @@ function AppContent() {
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/about" element={<About />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />

@@ -128,6 +128,8 @@ export default function Admin() {
   const [editAdditionalImages, setEditAdditionalImages] = useState<File[]>([]);
   const [editExistingImages, setEditExistingImages] = useState<string[]>([]);
   const [editVariants, setEditVariants] = useState<{ id?: string, color: string, colorCode: string, size: string, stock: number }[]>([]);
+  const [editIsBundle, setEditIsBundle] = useState(false);
+  const [editBundleItems, setEditBundleItems] = useState<{ productId: string, variantId?: string, quantity: number }[]>([]);
 
   const addVariantToEditProduct = () => {
     setEditVariants([...editVariants, { color: '', colorCode: '#000000', size: sizes[0]?.name || '', stock: 0 }]);
@@ -158,6 +160,8 @@ export default function Admin() {
   const [newProductImage, setNewProductImage] = useState<File | null>(null);
   const [newProductAdditionalImages, setNewProductAdditionalImages] = useState<File[]>([]);
   const [newProductVariants, setNewProductVariants] = useState<{ color: string, colorCode: string, size: string, stock: number }[]>([]);
+  const [newProductIsBundle, setNewProductIsBundle] = useState(false);
+  const [newProductBundleItems, setNewProductBundleItems] = useState<{ productId: string, variantId?: string, quantity: number }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   // Category Management State
@@ -214,6 +218,38 @@ export default function Admin() {
     const updated = [...newProductVariants];
     updated[index] = { ...updated[index], [field]: value };
     setNewProductVariants(updated);
+  };
+
+  const addBundleItemToNewProduct = () => {
+    setNewProductBundleItems([...newProductBundleItems, { productId: '', quantity: 1 }]);
+  };
+
+  const removeBundleItemFromNewProduct = (index: number) => {
+    setNewProductBundleItems(newProductBundleItems.filter((_, i) => i !== index));
+  };
+
+  const updateNewProductBundleItem = (index: number, field: string, value: any) => {
+    setNewProductBundleItems(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const addBundleItemToEditProduct = () => {
+    setEditBundleItems([...editBundleItems, { productId: '', quantity: 1 }]);
+  };
+
+  const removeBundleItemFromEditProduct = (index: number) => {
+    setEditBundleItems(editBundleItems.filter((_, i) => i !== index));
+  };
+
+  const updateEditProductBundleItem = (index: number, field: string, value: any) => {
+    setEditBundleItems(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
   const fetchAllOrders = async () => {
@@ -612,6 +648,8 @@ export default function Admin() {
     setEditIsFeatured(product.isFeatured || false);
     setEditIsNew(product.isNew || false);
     setEditIsSale(product.isSale || false);
+    setEditIsBundle(product.isBundle || false);
+    setEditBundleItems(product.bundleItems || []);
     setEditSalePrice(product.salePrice?.toString() || '');
     setEditProductImage(null);
     setEditAdditionalImages([]);
@@ -642,6 +680,8 @@ export default function Admin() {
         longDescription: editLongDescription,
         careInstructions: editCareInstructions,
         isFeatured: editIsFeatured,
+        isBundle: editIsBundle,
+        bundleItems: editIsBundle ? editBundleItems : [],
         variants: editVariants as any
       }, editProductImage || undefined, editAdditionalImages.length > 0 ? editAdditionalImages : undefined);
       setEditingProductId(null);
@@ -673,6 +713,8 @@ export default function Admin() {
         category: categories.find(c => c.id === newProductCategory)?.name || '',
         image: '', // Will be handled by addProduct if file exists
         images: [],
+        isBundle: newProductIsBundle,
+        bundleItems: newProductIsBundle ? newProductBundleItems : [],
         variants: newProductVariants as any
       }, newProductImage || undefined, newProductAdditionalImages.length > 0 ? newProductAdditionalImages : undefined);
 
@@ -682,6 +724,8 @@ export default function Admin() {
       setNewProductSalePrice('');
       setNewProductIsSale(false);
       setNewProductIsNew(false);
+      setNewProductIsBundle(false);
+      setNewProductBundleItems([]);
       setNewProductStock('');
       setNewProductDescription('');
       setNewProductLongDescription('');
@@ -782,21 +826,109 @@ export default function Admin() {
                 />
                 <span className="text-xs font-bold uppercase text-gray-500">Oferta</span>
               </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={newProductIsBundle}
+                  onChange={(e) => setNewProductIsBundle(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <span className="text-xs font-bold uppercase text-gray-500">Producto Híbrido (Bundle)</span>
+              </label>
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
-                {newProductVariants.length > 0 ? 'Stock Total (Calculado)' : 'Stock Total'}
+                {newProductVariants.length > 0 || newProductIsBundle ? 'Stock Total (Calculado)' : 'Stock Total'}
               </label>
               <input 
                 type="number" 
                 value={newProductStock}
                 onChange={(e) => setNewProductStock(e.target.value)}
-                readOnly={newProductVariants.length > 0}
-                className={`w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black ${newProductVariants.length > 0 ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                readOnly={newProductVariants.length > 0 || newProductIsBundle}
+                className={`w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black ${newProductVariants.length > 0 || newProductIsBundle ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                 required
                 min="0"
               />
             </div>
+
+            {newProductIsBundle && (
+              <div className="md:col-span-2 bg-purple-50 p-4 rounded-lg border border-purple-100 mb-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-sm font-bold uppercase tracking-widest text-purple-900">Items del Bundle (Set)</h4>
+                  <button 
+                    type="button"
+                    onClick={addBundleItemToNewProduct}
+                    className="text-xs bg-purple-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-purple-700"
+                  >
+                    <Plus size={14} /> Agregar Item
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {newProductBundleItems.map((item, index) => (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-white p-3 rounded border border-purple-100 shadow-sm">
+                      <div className="md:col-span-5">
+                        <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Producto Base</label>
+                        <select 
+                          value={item.productId}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setNewProductBundleItems(prev => {
+                              const updated = [...prev];
+                              updated[index] = { ...updated[index], productId: val, variantId: '' };
+                              return updated;
+                            });
+                          }}
+                          className="w-full border border-gray-300 p-1.5 rounded text-sm focus:outline-none focus:border-black"
+                          required
+                        >
+                          <option value="">Seleccionar Producto</option>
+                          {products.filter(p => !p.isBundle && p.id !== editingProductId).map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="md:col-span-4">
+                        <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Variante (Recomendado para inventario)</label>
+                        <select 
+                          value={item.variantId || ''}
+                          onChange={(e) => updateNewProductBundleItem(index, 'variantId', e.target.value)}
+                          className="w-full border border-gray-300 p-1.5 rounded text-sm focus:outline-none focus:border-black"
+                          disabled={!item.productId}
+                        >
+                          <option value="">Cualquier variante / Producto base</option>
+                          {products.find(p => p.id === item.productId)?.variants?.map(v => (
+                            <option key={v.id} value={v.id}>{v.color} - {v.size}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Cantidad</label>
+                        <input 
+                          type="number" 
+                          value={item.quantity}
+                          onChange={(e) => updateNewProductBundleItem(index, 'quantity', Number(e.target.value))}
+                          className="w-full border border-gray-300 p-1.5 rounded text-sm focus:outline-none focus:border-black"
+                          required
+                          min="1"
+                        />
+                      </div>
+                      <div className="md:col-span-1 flex justify-end">
+                        <button 
+                          type="button"
+                          onClick={() => removeBundleItemFromNewProduct(index)}
+                          className="text-red-500 hover:text-red-700 p-1.5"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {newProductBundleItems.length === 0 && (
+                    <p className="text-xs text-purple-400 text-center py-2 italic">No hay items en este bundle. Agrega al menos uno.</p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Descripción Corta</label>
               <textarea 
@@ -1063,6 +1195,66 @@ export default function Admin() {
                               ))}
                             </div>
                           </div>
+                          {editIsBundle && (
+                            <div className="bg-purple-50 p-2 rounded border border-purple-100 mt-3">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-[10px] font-bold uppercase text-purple-700">Items del Bundle</span>
+                                <button 
+                                  type="button"
+                                  onClick={addBundleItemToEditProduct}
+                                  className="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded"
+                                >
+                                  + Agregar
+                                </button>
+                              </div>
+                              <div className="space-y-2">
+                                {editBundleItems.map((item, i) => (
+                                  <div key={i} className="flex flex-col gap-1 bg-white p-2 rounded border border-purple-100">
+                                    <select 
+                                      value={item.productId}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setEditBundleItems(prev => {
+                                          const updated = [...prev];
+                                          updated[i] = { ...updated[i], productId: val, variantId: '' };
+                                          return updated;
+                                        });
+                                      }}
+                                      className="w-full border border-gray-300 p-1 rounded text-[10px]"
+                                    >
+                                      <option value="">Producto</option>
+                                      {products.filter(p => !p.isBundle && p.id !== editingProductId).map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                      ))}
+                                    </select>
+                                    <div className="flex gap-2">
+                                      <select 
+                                        value={item.variantId || ''}
+                                        onChange={(e) => updateEditProductBundleItem(i, 'variantId', e.target.value)}
+                                        className="flex-1 border border-gray-300 p-1 rounded text-[10px]"
+                                        disabled={!item.productId}
+                                      >
+                                        <option value="">Cualquier variante</option>
+                                        {products.find(p => p.id === item.productId)?.variants?.map(v => (
+                                          <option key={v.id} value={v.id}>{v.color} - {v.size}</option>
+                                        ))}
+                                      </select>
+                                      <input 
+                                        type="number" 
+                                        value={item.quantity}
+                                        onChange={(e) => updateEditProductBundleItem(i, 'quantity', Number(e.target.value))}
+                                        className="w-10 border border-gray-300 p-1 rounded text-[10px]"
+                                        min="1"
+                                      />
+                                      <button onClick={() => removeBundleItemFromEditProduct(i)} className="text-red-500">
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           <div className="mt-2">
                             <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Cambiar Imagen Principal</label>
                             <input 
@@ -1181,6 +1373,15 @@ export default function Admin() {
                               className="w-3 h-3"
                             />
                             Oferta
+                          </label>
+                          <label className="flex items-center gap-1 text-[10px] font-bold uppercase text-gray-500">
+                            <input 
+                              type="checkbox" 
+                              checked={editIsBundle} 
+                              onChange={(e) => setEditIsBundle(e.target.checked)}
+                              className="w-3 h-3"
+                            />
+                            Bundle
                           </label>
                         </div>
                       </td>

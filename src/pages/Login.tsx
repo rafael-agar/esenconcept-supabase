@@ -181,15 +181,26 @@ export default function Login() {
           </div>
         </form>
         
-        <div className="text-center mt-4">
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-gray-600 hover:text-black underline transition-colors"
-          >
-            {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia Sesión'}
-          </button>
-        </div>
-      </motion.div>
-    </div>
+          <div className="text-center mt-4">
+            <button
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-sm text-gray-600 hover:text-black underline transition-colors"
+            >
+              {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia Sesión'}
+            </button>
+          </div>
+          
+          {isLogin && (
+            <div className="text-center mt-2">
+              <button
+                onClick={() => navigate('/forgot-password')}
+                className="text-sm text-gray-500 hover:text-black transition-colors"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+          )}
+        </motion.div>
+      </div>
   );
 }

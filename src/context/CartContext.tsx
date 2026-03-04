@@ -6,6 +6,7 @@ export interface CartItem extends Product {
   quantity: number;
   selectedColor?: string;
   selectedSize?: string;
+  selectedVariantId?: string;
   cartId: string;
 }
 
@@ -24,6 +25,7 @@ interface CartContextType {
   isCartOpen: boolean;
   setIsCartOpen: (isOpen: boolean) => void;
   cartTotal: number;
+  cartSubtotal: number;
   cartCount: number;
   shippingCost: number;
   finalTotal: number;
@@ -32,6 +34,7 @@ interface CartContextType {
   
   // Coupon & Admin Logic
   discountAmount: number;
+  saleDiscount: number;
   appliedCoupon: Coupon | null;
   applyCoupon: (code: string) => boolean;
   removeCoupon: () => void;
@@ -128,10 +131,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const addToCart = (product: Product, color?: string, size?: string, quantity: number = 1): boolean => {
     // Determine available stock
     let availableStock = product.stock || 0;
+    let variantId: string | undefined;
+    
     if (product.variants && product.variants.length > 0) {
       const variant = product.variants.find(v => v.color === color && v.size === size);
       if (variant) {
         availableStock = variant.stock;
+        variantId = variant.id;
       }
     }
 
@@ -149,7 +155,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           item.cartId === cartId ? { ...item, quantity: item.quantity + quantity } : item
         );
       }
-      return [...prevCart, { ...product, quantity: quantity, selectedColor: color, selectedSize: size, cartId }];
+      return [...prevCart, { ...product, quantity: quantity, selectedColor: color, selectedSize: size, selectedVariantId: variantId, cartId }];
     });
     setIsCartOpen(true);
     return true;
@@ -238,18 +244,25 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const cartSubtotal = cart.reduce((total, item) => {
+    return total + item.price * item.quantity;
+  }, 0);
+
   const cartTotal = cart.reduce((total, item) => {
     const itemPrice = item.isSale && item.salePrice ? item.salePrice : item.price;
     return total + itemPrice * item.quantity;
   }, 0);
+
+  const saleDiscount = cartSubtotal - cartTotal;
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
 
-  const discountAmount = appliedCoupon ? (cartTotal * (appliedCoupon.discountPercentage / 100)) : 0;
+  // Discount calculation based on Subtotal (Original Prices) as requested by user
+  const discountAmount = appliedCoupon ? (cartSubtotal * (appliedCoupon.discountPercentage / 100)) : 0;
   const subtotalAfterDiscount = cartTotal - discountAmount;
 
   // Shipping Logic
-  // Free if: 3 or more items OR subtotalAfterDiscount >= freeShippingThreshold
-  const shippingCost = (cartCount >= 3 || subtotalAfterDiscount >= freeShippingThreshold) ? 0 : baseShippingCost;
+  // Free if: cartSubtotal >= freeShippingThreshold
+  const shippingCost = (cartSubtotal >= freeShippingThreshold) ? 0 : baseShippingCost;
   
   const finalTotal = subtotalAfterDiscount + shippingCost;
 
@@ -263,10 +276,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       isCartOpen,
       setIsCartOpen,
       cartTotal,
+      cartSubtotal,
       cartCount,
       shippingCost,
       finalTotal,
       discountAmount,
+      saleDiscount,
       appliedCoupon,
       applyCoupon,
       removeCoupon,

@@ -64,11 +64,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
           
           {/* Add to Cart Overlay */}
-          <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-black/50 to-transparent">
+          <div className="absolute inset-x-0 bottom-0 p-2 sm:p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-black/50 to-transparent">
               <div
-                  className="w-full bg-white text-black py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-white text-black py-2 sm:py-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors flex items-center justify-center gap-1 sm:gap-2"
               >
-                  <Plus size={16} /> Seleccionar Opciones
+                  <Plus size={14} className="sm:w-4 sm:h-4" /> 
+                  <span className="hidden sm:inline">Seleccionar Opciones</span>
+                  <span className="sm:hidden">Opciones</span>
               </div>
           </div>
         </div>

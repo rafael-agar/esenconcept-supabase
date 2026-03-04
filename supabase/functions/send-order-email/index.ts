@@ -90,7 +90,7 @@ const generateEmailHtml = (order: Order, isCustomer: boolean) => {
     <body>
       <div class="container">
         <div class="header">
-          <div class="logo">TU TIENDA</div>
+          <div class="logo">ESEN CONCEPT</div>
           <p>${isCustomer ? 'Confirmación de Pedido' : 'Nueva Venta Realizada'}</p>
         </div>
 
@@ -144,8 +144,14 @@ const generateEmailHtml = (order: Order, isCustomer: boolean) => {
         </div>
 
         <div class="footer">
-          <p>Si tienes alguna pregunta, responde a este correo.</p>
-          <p>&copy; ${new Date().getFullYear()} Tu Tienda. Todos los derechos reservados.</p>
+          <p>No responda a este correo. Utilice WhatsApp para comunicarse con nosotros.</p>
+          <div style="margin-top: 10px;">
+            <a href="https://wa.me/584144231212" style="text-decoration: none; color: #25D366; font-weight: bold; display: inline-block;">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/20px-WhatsApp.svg.png" width="20" height="20" style="vertical-align: middle; margin-right: 5px;">
+              Contactar por WhatsApp
+            </a>
+          </div>
+          <p>&copy; ${new Date().getFullYear()} ESEN Concept. Todos los derechos reservados.</p>
         </div>
       </div>
     </body>

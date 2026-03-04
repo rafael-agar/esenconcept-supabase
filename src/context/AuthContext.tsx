@@ -41,6 +41,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (name: string, email: string, password: string, phone: string, address: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
   
   // Favorites
@@ -236,6 +237,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setFavorites([]); // Clear favorites on logout (will be reloaded from LS by useEffect if needed, or stay empty)
   };
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+  };
+
   const register = async (name: string, email: string, password: string, phone: string, address: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -399,6 +407,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       login,
       logout,
       register,
+      resetPassword,
       updateProfile,
       favorites,
       toggleFavorite,

@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useProducts } from '../context/ProductContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircle, CreditCard, Truck, MapPin, Mail, User, ShieldCheck, Smartphone, Banknote, Tag, X } from 'lucide-react';
+import { CheckCircle, CreditCard, Truck, MapPin, Mail, User, ShieldCheck, Smartphone, Banknote, Tag, X, Copy, Check, Share2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import Spinner from '../components/Spinner';
+import FreeShippingProgress from '../components/FreeShippingProgress';
 
 export default function Checkout() {
-  const { cart, cartTotal, clearCart, shippingCost, finalTotal, appliedCoupon, discountAmount, applyCoupon, removeCoupon } = useCart();
+  const { cart, cartTotal, cartSubtotal, saleDiscount, clearCart, shippingCost, finalTotal, appliedCoupon, discountAmount, applyCoupon, removeCoupon } = useCart();
   const { user, isAuthenticated, addOrder } = useAuth();
+  const { products } = useProducts();
   const navigate = useNavigate();
   const location = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -17,6 +20,32 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<'pago-movil' | 'transferencia'>('pago-movil');
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, fieldId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldId);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const sharePaymentDetails = () => {
+    const details = paymentMethod === 'pago-movil' 
+      ? `Datos de Pago Móvil ESEN:\nCédula: V-14345345\nBanco: BNC\nTeléfono: 0414-4231212`
+      : `Datos de Transferencia ESEN:\nBanco: Banesco\nCuenta: 0134-0067-97-0671033669\nCédula: 22416850\nTeléfono: 04144326786\nTitular: Nombre Titular`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Datos de Pago ESEN',
+        text: details,
+      }).catch(err => {
+        if (err.name !== 'AbortError') {
+          copyToClipboard(details, 'all');
+        }
+      });
+    } else {
+      copyToClipboard(details, 'all');
+    }
+  };
 
   const [formData, setFormData] = useState({
     email: '',
@@ -25,7 +54,6 @@ export default function Checkout() {
     address: '',
     city: '',
     postalCode: '',
-    country: 'Mexico',
     depositorName: '',
     depositorId: '',
     bank: '',
@@ -86,7 +114,7 @@ export default function Checkout() {
           recipientEmail: formData.recipientEmail,
           message: formData.giftMessage
         } : undefined,
-        shippingAddress: `${formData.address}, ${formData.city}, ${formData.postalCode}, ${formData.country}`,
+        shippingAddress: `${formData.address}, ${formData.city}, ${formData.postalCode}`,
         paymentDetails: {
           depositorName: formData.depositorName,
           depositorId: formData.depositorId,
@@ -98,21 +126,49 @@ export default function Checkout() {
       if (newOrder) {
         // Update inventory via RPC function
         try {
-          const { error: inventoryError } = await supabase.rpc('update_inventory', { 
-            items: cart.map(item => ({
+          console.log('Starting inventory update for cart:', cart);
+          const inventoryItems: any[] = [];
+          
+          cart.forEach(item => {
+            // 1. Discount the main product (the bundle itself or the regular product)
+            inventoryItems.push({
               id: item.id,
+              variantId: item.selectedVariantId || null,
               quantity: item.quantity,
-              selectedColor: item.selectedColor,
-              selectedSize: item.selectedSize
-            }))
+              selectedColor: item.selectedColor || null,
+              selectedSize: item.selectedSize || null
+            });
+
+            // 2. If it's a bundle, we ALSO discount its components
+            if (item.isBundle && item.bundleItems && item.bundleItems.length > 0) {
+              console.log(`Processing bundle components for: ${item.name}`, item.bundleItems);
+              item.bundleItems.forEach(bundleItem => {
+                const baseProduct = products.find(p => p.id === bundleItem.productId);
+                const variant = baseProduct?.variants?.find(v => v.id === bundleItem.variantId);
+                
+                inventoryItems.push({
+                  id: bundleItem.productId,
+                  variantId: bundleItem.variantId || null,
+                  quantity: bundleItem.quantity * item.quantity,
+                  selectedColor: variant?.color || null,
+                  selectedSize: variant?.size || null
+                });
+              });
+            }
           });
 
-          if (inventoryError) {
-            console.error('Error updating inventory:', inventoryError);
-            // Don't block the checkout flow, but log the error.
-            // This might happen if the RPC function hasn't been created yet.
-          } else {
-            console.log('Inventory updated successfully');
+          console.log('Sending inventory update to Supabase:', inventoryItems);
+
+          if (inventoryItems.length > 0) {
+            const { data: rpcResult, error: inventoryError } = await supabase.rpc('update_inventory', { 
+              items: inventoryItems
+            });
+
+            if (inventoryError) {
+              console.error('Error updating inventory via RPC:', inventoryError);
+            } else {
+              console.log('Inventory updated successfully:', rpcResult);
+            }
           }
         } catch (invErr) {
           console.error('Exception updating inventory:', invErr);
@@ -130,7 +186,7 @@ export default function Checkout() {
               // Explicitly add snake_case properties to support the OLD version of the Edge Function
               // in case the deployment didn't go through correctly.
               total_amount: finalTotal, 
-              shipping_address: `${formData.address}, ${formData.city}, ${formData.postalCode}, ${formData.country}`,
+              shipping_address: `${formData.address}, ${formData.city}, ${formData.postalCode}`,
               payment_method: paymentMethod,
               is_gift: formData.isGift,
               gift_details: formData.isGift ? {
@@ -265,9 +321,10 @@ export default function Checkout() {
                       type="email" 
                       name="email"
                       required
+                      disabled
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-black transition-colors"
+                      className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-black transition-colors bg-gray-50 cursor-not-allowed"
                       placeholder="tu@email.com"
                     />
                   </div>
@@ -434,44 +491,125 @@ export default function Checkout() {
                 <div className="bg-gray-50 p-6 rounded-lg mb-6 border border-gray-200">
                   <h3 className="font-bold mb-4 text-sm uppercase tracking-wider">Datos para el pago:</h3>
                   {paymentMethod === 'pago-movil' ? (
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between border-b border-gray-200 pb-2">
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between items-center border-b border-gray-200 pb-2">
                         <span className="text-gray-500">Cédula:</span>
-                        <span className="font-mono font-bold">V-14345345</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold">V-14345345</span>
+                          <button 
+                            type="button"
+                            onClick={() => copyToClipboard('V-14345345', 'pm-cedula')}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-400 hover:text-black"
+                          >
+                            {copiedField === 'pm-cedula' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex justify-between border-b border-gray-200 pb-2">
+                      <div className="flex justify-between items-center border-b border-gray-200 pb-2">
                         <span className="text-gray-500">Banco:</span>
-                        <span className="font-mono font-bold">BNC</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold">BNC</span>
+                          <button 
+                            type="button"
+                            onClick={() => copyToClipboard('BNC', 'pm-banco')}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-400 hover:text-black"
+                          >
+                            {copiedField === 'pm-banco' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-gray-500">Teléfono:</span>
-                        <span className="font-mono font-bold">0414-4231212</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold">0414-4231212</span>
+                          <button 
+                            type="button"
+                            onClick={() => copyToClipboard('0414-4231212', 'pm-telefono')}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-400 hover:text-black"
+                          >
+                            {copiedField === 'pm-telefono' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between border-b border-gray-200 pb-2">
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between items-center border-b border-gray-200 pb-2">
                         <span className="text-gray-500">Banco:</span>
-                        <span className="font-mono font-bold">Banesco</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold">Banesco</span>
+                          <button 
+                            type="button"
+                            onClick={() => copyToClipboard('Banesco', 'tr-banco')}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-400 hover:text-black"
+                          >
+                            {copiedField === 'tr-banco' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex justify-between border-b border-gray-200 pb-2">
+                      <div className="flex justify-between items-center border-b border-gray-200 pb-2">
                         <span className="text-gray-500">Cuenta:</span>
-                        <span className="font-mono font-bold">0134-0067-97-0671033669</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold">0134-0067-97-0671033669</span>
+                          <button 
+                            type="button"
+                            onClick={() => copyToClipboard('0134-0067-97-0671033669', 'tr-cuenta')}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-400 hover:text-black"
+                          >
+                            {copiedField === 'tr-cuenta' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex justify-between border-b border-gray-200 pb-2">
+                      <div className="flex justify-between items-center border-b border-gray-200 pb-2">
                         <span className="text-gray-500">Cédula:</span>
-                        <span className="font-mono font-bold">22416850</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold">22416850</span>
+                          <button 
+                            type="button"
+                            onClick={() => copyToClipboard('22416850', 'tr-cedula')}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-400 hover:text-black"
+                          >
+                            {copiedField === 'tr-cedula' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex justify-between border-b border-gray-200 pb-2">
+                      <div className="flex justify-between items-center border-b border-gray-200 pb-2">
                         <span className="text-gray-500">Teléfono:</span>
-                        <span className="font-mono font-bold">04144326786</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold">04144326786</span>
+                          <button 
+                            type="button"
+                            onClick={() => copyToClipboard('04144326786', 'tr-telefono')}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-400 hover:text-black"
+                          >
+                            {copiedField === 'tr-telefono' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span className="text-gray-500">Titular:</span>
-                        <span className="font-mono font-bold">Nombre Titular</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold">Nombre Titular</span>
+                          <button 
+                            type="button"
+                            onClick={() => copyToClipboard('Nombre Titular', 'tr-titular')}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-400 hover:text-black"
+                          >
+                            {copiedField === 'tr-titular' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
+
+                  <button
+                    type="button"
+                    onClick={sharePaymentDetails}
+                    className="mt-6 w-full flex items-center justify-center gap-2 py-3 px-4 bg-white border border-gray-200 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-gray-100 transition-colors shadow-sm"
+                  >
+                    <Share2 size={14} />
+                    {copiedField === 'all' ? '¡Copiado!' : 'Compartir todos los datos'}
+                  </button>
                 </div>
 
                 <h3 className="font-bold mb-4 text-sm uppercase tracking-wider mt-8">Reportar Pago</h3>
@@ -536,6 +674,7 @@ export default function Checkout() {
 
           {/* Right Column: Order Summary */}
           <div className="lg:w-1/3">
+            <FreeShippingProgress />
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 sticky top-24">
               <h2 className="text-lg font-bold mb-6 border-b border-gray-100 pb-4">Resumen del Pedido</h2>
               
@@ -600,12 +739,19 @@ export default function Checkout() {
               <div className="space-y-3 border-t border-gray-100 pt-4 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${cartTotal.toFixed(2)}</span>
+                  <span className="font-medium">${cartSubtotal.toFixed(2)}</span>
                 </div>
                 
+                {saleDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-red-500">
+                    <span>Ahorro en Ofertas</span>
+                    <span className="font-medium">-${saleDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+
                 {appliedCoupon && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Descuento ({appliedCoupon.discountPercentage}%)</span>
+                    <span>Cupón ({appliedCoupon.discountPercentage}%)</span>
                     <span className="font-medium">-${discountAmount.toFixed(2)}</span>
                   </div>
                 )}

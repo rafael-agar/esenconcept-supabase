@@ -16,6 +16,12 @@ export interface Size {
   order: number;
 }
 
+export interface BundleItem {
+  productId: string;
+  variantId?: string; // Optional: if they want to bundle a specific variant
+  quantity: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -35,6 +41,8 @@ export interface Product {
   isFeatured?: boolean;
   isActive?: boolean;
   variants?: ProductVariant[];
+  isBundle?: boolean;
+  bundleItems?: BundleItem[];
 }
 
 export interface Category {
