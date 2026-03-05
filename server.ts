@@ -10,7 +10,12 @@ const app = express();
 const PORT = 3000;
 
 // Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend: Resend | null = null;
+if (process.env.RESEND_API_KEY) {
+  resend = new Resend(process.env.RESEND_API_KEY);
+} else {
+  console.warn("RESEND_API_KEY is missing. Email functionality will be disabled.");
+}
 
 app.use(express.json());
 
@@ -111,6 +116,11 @@ app.post('/api/send-email', async (req, res) => {
 
     if (!order || !userEmail) {
       return res.status(400).json({ error: 'Missing order or userEmail' });
+    }
+
+    if (!resend) {
+      console.warn("Attempted to send email but RESEND_API_KEY is not configured.");
+      return res.status(503).json({ error: 'Email service not configured (missing API key).' });
     }
 
     // 1. Send email to Customer

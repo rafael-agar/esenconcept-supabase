@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "npm:resend";
 
 const resend = new Resend("re_HHts1TDD_E7yzCzkQDJFTibnQTEmFdjdK");
@@ -21,18 +20,18 @@ interface OrderItem {
 
 interface Order {
   id: string;
-  total: number; // Changed from total_amount to match frontend
+  total: number;
   items: OrderItem[];
-  shippingAddress: string; // Changed from shipping_address
-  paymentMethod: string; // Changed from payment_method
+  shippingAddress: string;
+  paymentMethod: string;
   status: string;
-  isGift?: boolean; // Changed from is_gift
-  giftDetails?: { // Changed from gift_details
+  isGift?: boolean;
+  giftDetails?: {
     recipientName: string;
     recipientEmail: string;
     message: string;
   };
-  paymentDetails?: { // Changed from payment_details
+  paymentDetails?: {
     referenceNumber: string;
     bank: string;
   };
@@ -40,8 +39,8 @@ interface Order {
   user_name: string;
 }
 
-const generateEmailHtml = (order: Order, isCustomer: boolean) => {
-  const logoUrl = process.env.VITE_LOGO;
+const generateEmailHtml = (order: Order, isCustomer: boolean, type: string = 'new_order') => {
+  const logoUrl = "https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/ESEN%20logo%20negro.png";
   const date = new Date().toLocaleDateString('es-ES', { 
     year: 'numeric', 
     month: 'long', 
@@ -71,7 +70,36 @@ const generateEmailHtml = (order: Order, isCustomer: boolean) => {
     </tr>
   `).join('');
 
-  return `
+  let subject = '';
+  let title = '';
+  let message = '';
+
+  if (type === 'payment_approved') {
+    subject = `Pago Aprobado - Pedido #${order.id.slice(0, 8)}`;
+    title = '¡Pago Aprobado!';
+    message = `
+      <p>Hola ${order.user_name},</p>
+      <p>Nos complace informarte que tu pago ha sido <strong>aprobado exitosamente</strong>.</p>
+      <p>En las próximas 24 horas, tu pedido será enviado y recibirás un nuevo correo con la guía de rastreo correspondiente.</p>
+      <p>Gracias por confiar en ESEN Concept.</p>
+    `;
+  } else {
+    // Default: new_order
+    subject = isCustomer ? `Confirmación de Pedido #${order.id.slice(0, 8)}` : `Nueva Venta: Pedido #${order.id.slice(0, 8)} - $${order.total.toFixed(2)}`;
+    title = isCustomer ? 'Confirmación de Pedido' : 'Nueva Venta Realizada';
+    message = `
+      <p>Hola ${isCustomer ? order.user_name : 'Admin'},</p>
+      <p>
+        ${isCustomer 
+          ? 'Gracias por tu compra. Hemos recibido tu pedido correctamente.' 
+          : `Se ha realizado una nueva compra por parte de <strong>${order.user_name}</strong> (${order.user_email}).`}
+      </p>
+    `;
+  }
+
+  return {
+    subject,
+    html: `
     <!DOCTYPE html>
     <html>
     <head>
@@ -90,22 +118,18 @@ const generateEmailHtml = (order: Order, isCustomer: boolean) => {
     <body>
       <div class="container">
         <div class="header">
-          <div class="logo">ESEN CONCEPT</div>
-          <p>${isCustomer ? 'Confirmación de Pedido' : 'Nueva Venta Realizada'}</p>
+          <div class="logo">
+            <img src="${logoUrl}" alt="ESEN CONCEPT" style="max-width: 200px; height: auto;" />
+          </div>
+          <p>${title}</p>
         </div>
 
-        <p>Hola ${isCustomer ? order.user_name : 'Admin'},</p>
-        
-        <p>
-          ${isCustomer 
-            ? 'Gracias por tu compra. Hemos recibido tu pedido correctamente.' 
-            : `Se ha realizado una nueva compra por parte de <strong>${order.user_name}</strong> (${order.user_email}).`}
-        </p>
+        ${message}
 
         <div class="details">
           <p><strong>Pedido ID:</strong> #${order.id.slice(0, 8)}</p>
           <p><strong>Fecha:</strong> ${date}</p>
-          <p><strong>Estado:</strong> <span class="status">${order.status}</span></p>
+          <p><strong>Estado:</strong> <span class="status">${type === 'payment_approved' ? 'Pago Aprobado' : order.status}</span></p>
           <p><strong>Método de Pago:</strong> ${order.paymentMethod === 'pago-movil' ? 'Pago Móvil' : 'Transferencia'}</p>
           ${order.paymentDetails ? `
             <p><strong>Referencia:</strong> ${order.paymentDetails.referenceNumber}</p>
@@ -144,7 +168,7 @@ const generateEmailHtml = (order: Order, isCustomer: boolean) => {
         </div>
 
         <div class="footer">
-          <p>No responda a este correo. Utilice WhatsApp para comunicarse con nosotros.</p>
+          <p>Si tienes alguna pregunta, responde a este correo.</p>
           <div style="margin-top: 10px;">
             <a href="https://wa.me/584144231212" style="text-decoration: none; color: #25D366; font-weight: bold; display: inline-block;">
               <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/20px-WhatsApp.svg.png" width="20" height="20" style="vertical-align: middle; margin-right: 5px;">
@@ -156,22 +180,23 @@ const generateEmailHtml = (order: Order, isCustomer: boolean) => {
       </div>
     </body>
     </html>
-  `;
+    `
+  };
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { order } = await req.json();
+    const { order, type = 'new_order' } = await req.json();
 
     if (!order) {
       throw new Error("No order data provided");
     }
 
-    console.log("Processing order email for:", order.id);
+    console.log(`Processing ${type} email for:`, order.id);
 
     const results = {
       customer: { success: false, error: null as any },
@@ -180,11 +205,13 @@ serve(async (req) => {
 
     // 1. Send email to Customer
     try {
+      const emailContent = generateEmailHtml(order, true, type);
       const data = await resend.emails.send({
-        from: "onboarding@resend.dev",
+        from: "pedidos@esenconcept.com",
         to: [order.user_email],
-        subject: `Confirmación de Pedido #${order.id.slice(0, 8)}`,
-        html: generateEmailHtml(order, true),
+        subject: emailContent.subject,
+        html: emailContent.html,
+        reply_to: "i.t.rafaelagar@gmail.com",
       });
       
       if (data.error) {
@@ -198,24 +225,27 @@ serve(async (req) => {
       results.customer.error = err.message || err;
     }
 
-    // 2. Send email to Admin
-    try {
-      const data = await resend.emails.send({
-        from: "onboarding@resend.dev",
-        to: ["i.t.rafaelagar@gmail.com"],
-        subject: `Nueva Venta: Pedido #${order.id.slice(0, 8)} - $${order.total.toFixed(2)}`,
-        html: generateEmailHtml(order, false),
-      });
+    // 2. Send email to Admin (only for new orders)
+    if (type === 'new_order') {
+      try {
+        const emailContent = generateEmailHtml(order, false, type);
+        const data = await resend.emails.send({
+          from: "venta@esenconcept.com",
+          to: ["i.t.rafaelagar@gmail.com"],
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
 
-      if (data.error) {
-        console.error("Resend API Error (Admin):", data.error);
-        results.admin.error = data.error;
-      } else {
-        results.admin.success = true;
+        if (data.error) {
+          console.error("Resend API Error (Admin):", data.error);
+          results.admin.error = data.error;
+        } else {
+          results.admin.success = true;
+        }
+      } catch (err) {
+        console.error("Exception sending admin email:", err);
+        results.admin.error = err.message || err;
       }
-    } catch (err) {
-      console.error("Exception sending admin email:", err);
-      results.admin.error = err.message || err;
     }
 
     // Return 200 if at least one email was attempted, but include errors in body

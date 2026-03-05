@@ -22,6 +22,15 @@ export default function Admin() {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [pendingOrderUpdate, setPendingOrderUpdate] = useState<{
+    orderId: string;
+    newStatus: string;
+    customerName: string;
+    products: string[];
+    phoneNumber?: string;
+    trackingNumber?: string;
+  } | null>(null);
 
   // ... (rest of state)
 
@@ -43,7 +52,9 @@ export default function Admin() {
     // Customer Info
     doc.text('Cliente:', 14, 64);
     doc.setFontSize(9);
-    doc.text(`Dirección: ${order.shipping_address || 'N/A'}`, 14, 70);
+    doc.text(`Nombre: ${order.customer?.full_name || 'Desconocido'}`, 14, 70);
+    doc.text(`Email: ${order.customer?.email || 'N/A'}`, 14, 76);
+    doc.text(`Dirección: ${order.shipping_address || 'N/A'}`, 14, 82);
     
     // Payment Info
     doc.setFontSize(10);
@@ -62,10 +73,10 @@ export default function Admin() {
       const gift = order.gift_details || order.giftDetails;
       if (gift) {
         doc.setFontSize(10);
-        doc.text('Detalles de Regalo:', 14, 85);
+        doc.text('Detalles de Regalo:', 14, 92);
         doc.setFontSize(9);
-        doc.text(`Para: ${gift.recipientName}`, 14, 91);
-        doc.text(`Mensaje: "${gift.message}"`, 14, 97);
+        doc.text(`Para: ${gift.recipientName}`, 14, 98);
+        doc.text(`Mensaje: "${gift.message}"`, 14, 104);
       }
     }
 
@@ -86,7 +97,7 @@ export default function Admin() {
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 110,
+      startY: 115,
       theme: 'grid',
       headStyles: { fillColor: [0, 0, 0] },
     });
@@ -267,19 +278,56 @@ export default function Admin() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
       if (data) {
-        const formattedOrders = data.map(o => ({
-          ...o,
-          total: Number(o.total_amount),
-          items: o.order_items.map((oi: any) => ({
-            id: oi.products?.id,
-            name: oi.products?.name,
-            price: Number(oi.unit_price),
-            image: oi.products?.image_url,
-            quantity: oi.quantity
-          })),
-          paymentDetails: o.payment_details
-        }));
+        // Fetch user profiles for these orders
+        const userIds = [...new Set(data.map(o => o.user_id).filter(Boolean))];
+        let profilesMap = new Map();
+        
+        if (userIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, phone')
+            .in('id', userIds);
+            
+          if (!profilesError && profilesData) {
+            profilesMap = new Map(profilesData.map(p => [p.id, p]));
+          }
+        }
+
+        const formattedOrders = data.map(o => {
+          const profile = profilesMap.get(o.user_id);
+          let customerName = 'Desconocido';
+          let customerEmail = 'No disponible';
+          let customerPhone = '';
+
+          if (profile) {
+            customerName = profile.full_name || 'Sin nombre';
+            customerEmail = profile.email || 'Sin email';
+            customerPhone = profile.phone || '';
+          } else if (o.payment_details && o.payment_details.depositorName) {
+             customerName = o.payment_details.depositorName;
+             customerEmail = 'N/A (Pago Móvil/Transferencia)';
+          }
+
+          return {
+            ...o,
+            total: Number(o.total_amount),
+            customer: {
+                full_name: customerName,
+                email: customerEmail,
+                phone: customerPhone
+            },
+            items: o.order_items.map((oi: any) => ({
+              id: oi.products?.id,
+              name: oi.products?.name,
+              price: Number(oi.unit_price),
+              image: oi.products?.image_url,
+              quantity: oi.quantity
+            })),
+            paymentDetails: o.payment_details
+          };
+        });
         setOrders(formattedOrders);
       }
     } catch (error) {
@@ -331,6 +379,41 @@ export default function Admin() {
   }, [editVariants]);
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
+    if (newStatus === 'Pago Aprobado') {
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        setPendingOrderUpdate({
+          orderId,
+          newStatus,
+          customerName: order.customer?.full_name || 'Cliente',
+          products: order.items.map((i: any) => i.name),
+          phoneNumber: order.customer?.phone
+        });
+        setIsConfirmModalOpen(true);
+        return;
+      }
+    }
+
+    if (newStatus === 'Enviado') {
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        setPendingOrderUpdate({
+          orderId,
+          newStatus,
+          customerName: order.customer?.full_name || 'Cliente',
+          products: order.items.map((i: any) => i.name),
+          phoneNumber: order.customer?.phone,
+          trackingNumber: ''
+        });
+        setIsConfirmModalOpen(true);
+        return;
+      }
+    }
+
+    await updateOrderStatus(orderId, newStatus);
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
     setIsUploading(true);
     try {
       const { error } = await supabase
@@ -347,6 +430,43 @@ export default function Admin() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingOrderUpdate) return;
+
+    if (pendingOrderUpdate.newStatus === 'Enviado' && !pendingOrderUpdate.trackingNumber) {
+      showToast('Por favor ingresa el número de guía', 'error');
+      return;
+    }
+
+    await updateOrderStatus(pendingOrderUpdate.orderId, pendingOrderUpdate.newStatus);
+    setIsConfirmModalOpen(false);
+
+    // WhatsApp Logic
+    const productsList = pendingOrderUpdate.products.join(', ');
+    let message = '';
+
+    if (pendingOrderUpdate.newStatus === 'Pago Aprobado') {
+      message = `Hola ${pendingOrderUpdate.customerName}, tu pago ha sido aprobado. En las próximas 24 horas será enviado ${productsList} con su respectiva guía.`;
+    } else if (pendingOrderUpdate.newStatus === 'Enviado') {
+      message = `Hola ${pendingOrderUpdate.customerName}, tu pedido ha sido enviado. Tu número de guía es: ${pendingOrderUpdate.trackingNumber}. Productos: ${productsList}.`;
+    }
+
+    if (message) {
+      const encodedMessage = encodeURIComponent(message);
+      
+      let whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+      if (pendingOrderUpdate.phoneNumber) {
+          // Clean phone number (remove non-digits)
+          const cleanPhone = pendingOrderUpdate.phoneNumber.replace(/\D/g, '');
+          whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+      }
+
+      window.open(whatsappUrl, '_blank');
+    }
+    
+    setPendingOrderUpdate(null);
   };
 
   const handleAddCategory = async (e: React.FormEvent) => {
@@ -1632,7 +1752,8 @@ export default function Admin() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
                 <th className="p-4 font-bold">ID / Fecha</th>
-                <th className="p-4 font-bold">Cliente / Envío</th>
+                <th className="p-4 font-bold">Cliente</th>
+                <th className="p-4 font-bold">Envío</th>
                 <th className="p-4 font-bold">Pago</th>
                 <th className="p-4 font-bold">Total</th>
                 <th className="p-4 font-bold">Estado</th>
@@ -1651,6 +1772,12 @@ export default function Admin() {
                           Regalo
                         </span>
                       ) : null}
+                    </div>
+                  </td>
+                  <td className="p-4 align-top">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold">{order.customer?.full_name || 'Desconocido'}</span>
+                      <span className="text-xs text-gray-500">{order.customer?.email || 'No disponible'}</span>
                     </div>
                   </td>
                   <td className="p-4 align-top">
@@ -1702,7 +1829,6 @@ export default function Admin() {
                         <option value="Pendiente">Pendiente</option>
                         <option value="Pago Aprobado">Pago Aprobado</option>
                         <option value="Enviado">Enviado</option>
-                        <option value="Entregado">Entregado</option>
                         <option value="Cancelado">Cancelado</option>
                       </select>
                       <button 
@@ -1717,7 +1843,7 @@ export default function Admin() {
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-gray-500">
+                  <td colSpan={7} className="p-8 text-center text-gray-500">
                     No hay pedidos registrados.
                   </td>
                 </tr>
@@ -1866,41 +1992,9 @@ export default function Admin() {
     </div>
   );
 
-  const downloadUsersCSV = () => {
-    const headers = ['Nombre', 'Email', 'Teléfono', 'Dirección', 'Rol', 'Fecha Registro'];
-    const csvContent = [
-      headers.join(','),
-      ...users.map(u => [
-        `"${u.full_name || ''}"`,
-        `"${u.email || ''}"`,
-        `"${u.phone || ''}"`,
-        `"${u.address || ''}"`,
-        `"${u.role || ''}"`,
-        `"${u.created_at || ''}"`
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'usuarios.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const renderUsers = () => (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-serif font-bold">Gestión de Usuarios</h2>
-        <button 
-          onClick={downloadUsersCSV}
-          className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold uppercase flex items-center gap-2 hover:bg-gray-800 transition-colors"
-        >
-          <FileText size={18} /> Descargar CSV
-        </button>
-      </div>
+      <h2 className="text-2xl font-serif font-bold mb-6">Gestión de Usuarios</h2>
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {usersLoading ? (
           <div className="p-12 flex justify-center">
@@ -1912,8 +2006,6 @@ export default function Admin() {
               <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
                 <th className="p-4 font-bold">Usuario</th>
                 <th className="p-4 font-bold">Email</th>
-                <th className="p-4 font-bold">Teléfono</th>
-                <th className="p-4 font-bold">Dirección</th>
                 <th className="p-4 font-bold">Rol</th>
                 <th className="p-4 font-bold">Fecha Registro</th>
               </tr>
@@ -1930,8 +2022,6 @@ export default function Admin() {
                     </div>
                   </td>
                   <td className="p-4 text-sm text-gray-600">{u.email}</td>
-                  <td className="p-4 text-sm text-gray-600">{u.phone || 'N/A'}</td>
-                  <td className="p-4 text-sm text-gray-600 max-w-xs truncate">{u.address || 'N/A'}</td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
@@ -1946,7 +2036,7 @@ export default function Admin() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-gray-500">
+                  <td colSpan={4} className="p-8 text-center text-gray-500">
                     No hay usuarios registrados.
                   </td>
                 </tr>
@@ -2058,6 +2148,64 @@ export default function Admin() {
         message={confirmModal.message}
         isDestructive={confirmModal.isDestructive}
       />
+
+      {isConfirmModalOpen && pendingOrderUpdate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
+          >
+            <h3 className="text-xl font-bold mb-4">
+              {pendingOrderUpdate.newStatus === 'Pago Aprobado' ? 'Confirmar Aprobación de Pago' : 'Confirmar Envío'}
+            </h3>
+            
+            <div className="mb-6">
+              <p className="text-gray-800 mb-2">
+                Estás a punto de cambiar el estado a <strong className="text-black">{pendingOrderUpdate.newStatus}</strong> para <strong className="text-black">{pendingOrderUpdate.customerName}</strong>.
+              </p>
+              
+              {pendingOrderUpdate.newStatus === 'Enviado' && (
+                <div className="mt-4">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Número de Guía / Tracking</label>
+                  <input 
+                    type="text" 
+                    value={pendingOrderUpdate.trackingNumber || ''}
+                    onChange={(e) => setPendingOrderUpdate({...pendingOrderUpdate, trackingNumber: e.target.value})}
+                    placeholder="Ej: TEALCA-123456"
+                    className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-black"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              <p className="text-sm text-gray-500 bg-green-50 p-3 rounded-lg border border-green-100 mt-4">
+                Al confirmar, se actualizará el estado y se abrirá WhatsApp para enviar la notificación al cliente.
+              </p>
+            </div>
+            
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setIsConfirmModalOpen(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 font-medium hover:bg-gray-50 transition-colors text-sm"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmStatusChange}
+                disabled={pendingOrderUpdate.newStatus === 'Enviado' && !pendingOrderUpdate.trackingNumber}
+                className={`px-4 py-2 rounded-lg text-white font-bold flex items-center gap-2 text-sm transition-colors ${
+                  pendingOrderUpdate.newStatus === 'Enviado' && !pendingOrderUpdate.trackingNumber 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                <CheckCircle size={16} /> Confirmar y Enviar
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
       
       <LoadingOverlay isLoading={isUploading} message="Procesando..." fullScreen={true} />
     </div>

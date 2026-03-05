@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter } from 'lucide-react';
 import ContactModal from './ContactModal';
+import { useProducts } from '../context/ProductContext';
 
 export default function Footer() {
+  const { categories } = useProducts();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   return (
@@ -30,14 +32,23 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Links 1 */}
+          {/* Links 1 - Categories */}
           <div>
-            <h4 className="text-sm font-bold uppercase tracking-widest mb-6">Tienda</h4>
+            <h4 className="text-sm font-bold uppercase tracking-widest mb-6">Categorías</h4>
             <ul className="space-y-3 text-sm text-gray-400">
-              <li><Link to="/shop" className="hover:text-white transition-colors">Novedades</Link></li>
-              <li><Link to="/shop" className="hover:text-white transition-colors">Ropa</Link></li>
-              <li><Link to="/shop" className="hover:text-white transition-colors">Accesorios</Link></li>
-              <li><Link to="/shop" className="hover:text-white transition-colors">Rebajas</Link></li>
+              {categories.map(cat => (
+                <li key={cat.id}>
+                  <Link 
+                    to={`/shop?category=${encodeURIComponent(cat.name)}`} 
+                    className="hover:text-white transition-colors"
+                  >
+                    {cat.name}
+                  </Link>
+                </li>
+              ))}
+              {categories.length === 0 && (
+                <li><span className="text-gray-600">Cargando categorías...</span></li>
+              )}
             </ul>
           </div>
 
