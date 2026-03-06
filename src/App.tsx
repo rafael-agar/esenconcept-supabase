@@ -23,6 +23,8 @@ import FAQ from './pages/FAQ';
 import Admin from './pages/Admin';
 import AdminRoute from './components/AdminRoute';
 
+import WhatsAppButton from './components/WhatsAppButton';
+
 function AppContent() {
   return (
     <Router>
@@ -55,6 +57,7 @@ function AppContent() {
         </main>
 
         <Footer />
+        <WhatsAppButton />
       </div>
     </Router>
   );

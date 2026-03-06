@@ -170,7 +170,7 @@ const generateEmailHtml = (order: Order, isCustomer: boolean, type: string = 'ne
         <div class="footer">
           <p>Si tienes alguna pregunta, responde a este correo.</p>
           <div style="margin-top: 10px;">
-            <a href="https://wa.me/584144231212" style="text-decoration: none; color: #25D366; font-weight: bold; display: inline-block;">
+            <a href="https://wa.me/584226413853" style="text-decoration: none; color: #25D366; font-weight: bold; display: inline-block;">
               <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/20px-WhatsApp.svg.png" width="20" height="20" style="vertical-align: middle; margin-right: 5px;">
               Contactar por WhatsApp
             </a>

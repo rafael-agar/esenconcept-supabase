@@ -76,6 +76,22 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
                   </button>
                 </div>
 
+                {/* WhatsApp */}
+                <a
+                  href="https://wa.me/584226413853"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gray-50 rounded-2xl p-4 flex items-center gap-3 border border-transparent hover:border-gray-200 transition-all group"
+                >
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                    <MessageCircle size={18} className="text-gray-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">WhatsApp</p>
+                    <p className="text-sm font-medium text-gray-900">+58 422 641 3853</p>
+                  </div>
+                </a>
+
                 {/* Instagram */}
                 <a
                   href="https://www.instagram.com/esenconcept"

@@ -30,8 +30,8 @@ export default function Checkout() {
 
   const sharePaymentDetails = () => {
     const details = paymentMethod === 'pago-movil' 
-      ? `Datos de Pago Móvil ESEN:\nCédula: V-14345345\nBanco: BNC\nTeléfono: 0414-4231212`
-      : `Datos de Transferencia ESEN:\nBanco: Banesco\nCuenta: 0134-0067-97-0671033669\nCédula: 22416850\nTeléfono: 04144326786\nTitular: Nombre Titular`;
+      ? `Datos de Pago Móvil ESEN:\nCédula: V-14345345\nBanco: BNC\nTeléfono: 0422-6413853`
+      : `Datos de Transferencia ESEN:\nBanco: Banesco\nCuenta: 0134-0067-97-0671033669\nCédula: 22416850\nTeléfono: 0422-6413853\nTitular: Nombre Titular`;
     
     if (navigator.share) {
       navigator.share({
@@ -521,10 +521,10 @@ export default function Checkout() {
                       <div className="flex justify-between items-center">
                         <span className="text-gray-500">Teléfono:</span>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold">0414-4231212</span>
+                          <span className="font-mono font-bold">0422-6413853</span>
                           <button 
                             type="button"
-                            onClick={() => copyToClipboard('0414-4231212', 'pm-telefono')}
+                            onClick={() => copyToClipboard('0422-6413853', 'pm-telefono')}
                             className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-400 hover:text-black"
                           >
                             {copiedField === 'pm-telefono' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
@@ -576,10 +576,10 @@ export default function Checkout() {
                       <div className="flex justify-between items-center border-b border-gray-200 pb-2">
                         <span className="text-gray-500">Teléfono:</span>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold">04144326786</span>
+                          <span className="font-mono font-bold">0422-6413853</span>
                           <button 
                             type="button"
-                            onClick={() => copyToClipboard('04144326786', 'tr-telefono')}
+                            onClick={() => copyToClipboard('0422-6413853', 'tr-telefono')}
                             className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-400 hover:text-black"
                           >
                             {copiedField === 'tr-telefono' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
