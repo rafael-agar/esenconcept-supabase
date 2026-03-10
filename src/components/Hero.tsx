@@ -5,36 +5,41 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const slides = [
   {
     id: 1,
-    image: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner%203%20top%20aura.webp',
+    type: 'video',
+    src: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/Comprimido%20banner%20principal.mp4',
     subtitle: 'Nueva Colección',
     title: 'Atrévete a ser tú misma',
     buttonText: 'Comprar Ahora'
   },
   {
     id: 2,
-    image: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner%204%20set%20raiz.webp',
-    subtitle: 'Otoño / Invierno 2024',
-    title: 'Elegancia Atemporal',
-    buttonText: 'Ver Colección'
-  },
-  {
-    id: 3,
-    image: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner2-calmaset.webp',
+    type: 'image',
+    src: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner2-calmaset.webp',
     subtitle: 'Edición Limitada',
     title: 'Estilo y Confort',
     buttonText: 'Descubrir Más'
+  },
+  {
+    id: 3,
+    type: 'image',
+    src: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner%204%20set%20raiz.webp',
+    subtitle: 'Otoño / Invierno 2024',
+    title: 'Elegancia Atemporal',
+    buttonText: 'Ver Colección'
   }
 ];
 
 export default function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
 
   useEffect(() => {
+    setIsVideoLoaded(false);
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
+    }, 8000);
     return () => clearInterval(timer);
-  }, []);
+  }, [currentSlide]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -55,15 +60,35 @@ export default function Hero() {
           transition={{ duration: 0.7 }}
           className="absolute inset-0"
         >
-          {/* Background Image */}
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url("${slides[currentSlide].image}")`,
-            }}
-          >
-            <div className="absolute inset-0 bg-black/30" />
-          </div>
+          {/* Background Image or Video */}
+          {slides[currentSlide].type === 'video' ? (
+            <div className="absolute inset-0">
+              {!isVideoLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black">
+                  <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                </div>
+              )}
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                className={`w-full h-full object-cover transition-opacity duration-500 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
+                src={slides[currentSlide].src}
+                onLoadedData={() => setIsVideoLoaded(true)}
+              />
+              <div className="absolute inset-0 bg-black/30" />
+            </div>
+          ) : (
+            <div
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+              style={{
+                backgroundImage: `url("${slides[currentSlide].src}")`,
+              }}
+            >
+              <div className="absolute inset-0 bg-black/30" />
+            </div>
+          )}
 
           {/* Content */}
           <div className="relative h-full flex flex-col justify-center items-center text-center text-white px-4">
