@@ -11,7 +11,7 @@ import ProductCard from '../components/ProductCard';
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { products, refreshProducts } = useProducts();
+  const { products, refreshProducts, isLoading } = useProducts();
   const product = products.find(p => p.id === id);
   const { addToCart } = useCart();
   const { toggleFavorite, isFavorite, isAuthenticated } = useAuth();
@@ -87,6 +87,36 @@ export default function ProductDetail() {
       localStorage.setItem('recentlyViewed', JSON.stringify(newViewedIds));
     }
   }, [product]);
+
+  if (isLoading) {
+    return (
+      <div className="pt-24 pb-20 px-4 max-w-7xl mx-auto">
+        <div className="mb-8 h-5 w-24 bg-gray-200 animate-pulse rounded"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-20">
+          <div className="space-y-4">
+            <div className="aspect-[3/4] bg-gray-200 animate-pulse rounded"></div>
+            <div className="grid grid-cols-5 gap-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="aspect-square bg-gray-200 animate-pulse rounded"></div>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col space-y-6">
+            <div className="h-10 bg-gray-200 animate-pulse rounded w-3/4"></div>
+            <div className="h-6 bg-gray-200 animate-pulse rounded w-1/4"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 animate-pulse rounded w-full"></div>
+              <div className="h-4 bg-gray-200 animate-pulse rounded w-full"></div>
+              <div className="h-4 bg-gray-200 animate-pulse rounded w-2/3"></div>
+            </div>
+            <div className="h-8 bg-gray-200 animate-pulse rounded w-1/3"></div>
+            <div className="h-24 bg-gray-200 animate-pulse rounded w-full"></div>
+            <div className="h-12 bg-gray-200 animate-pulse rounded w-full"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return <div className="pt-32 text-center">Producto no encontrado</div>;

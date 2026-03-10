@@ -63,7 +63,7 @@ const FAQ: React.FC = () => {
         />
         <FAQItem 
           question="¿Cómo son sus colecciones?"
-          answer="Trabajamos bajo un modelo de cápsulas limitadas. Cada pieza es creada con un propósito e intención específica, asegurando exclusividad y atención al detalle en cada confección."
+          answer="Trabajamos bajo un modelo de categorías limitadas. Cada pieza es creada con un propósito e intención específica, asegurando exclusividad y atención al detalle en cada confección."
         />
 
         <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-6 mt-12">Envíos</h2>

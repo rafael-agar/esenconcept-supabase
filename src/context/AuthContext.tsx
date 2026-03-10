@@ -245,6 +245,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const register = async (name: string, email: string, password: string, phone: string, address: string) => {
+    // 1. Check if email is already in leads table
+    const { data: leadData } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+    
+    const isLeadConversion = !!leadData;
+
+    // 2. Sign up user
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -260,10 +270,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw error;
 
     if (data.user) {
-      // Update profile with additional details
-      // We use upsert to handle cases where the trigger might have already created the row
-      // or if it hasn't created it yet.
-      
+      // 3. Update profile with additional details and conversion info
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -272,11 +279,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: email,
           phone: phone,
           address: address,
-          role: 'customer'
+          role: 'customer',
+          is_lead_conversion: isLeadConversion,
+          converted_at: isLeadConversion ? new Date().toISOString() : null
         });
 
       if (profileError) {
         console.error('Error updating profile details:', profileError);
+      }
+
+      // 4. Optional: Mark lead as converted in leads table if needed
+      if (isLeadConversion) {
+        await supabase
+          .from('leads')
+          .update({ 
+            converted_user_id: data.user.id,
+            converted_at: new Date().toISOString()
+          })
+          .eq('email', email);
       }
     }
   };

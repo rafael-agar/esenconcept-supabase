@@ -5,6 +5,7 @@ export interface ProductVariant {
   colorCode: string;  // Código Hex (ej: "#FF0000")
   size: string;       // Nombre de la talla (ej: "M")
   stock: number;
+  damagedStock?: number;
   price?: number;
   sku?: string;
   imageUrl?: string;
@@ -32,6 +33,7 @@ export interface Product {
   price: number;
   salePrice?: number;
   stock?: number;
+  damagedStock?: number;
   image: string;
   images: string[];
   category: string;

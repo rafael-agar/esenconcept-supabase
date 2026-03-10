@@ -5,7 +5,7 @@ import { Filter, ChevronDown } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
 export default function Shop() {
-  const { products, categories } = useProducts();
+  const { products, categories, isLoading } = useProducts();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showOnlySale, setShowOnlySale] = useState(false);
@@ -119,7 +119,7 @@ export default function Shop() {
           <div className="sticky top-24 space-y-8">
             {/* Categories */}
             <div>
-              <h3 className="font-bold uppercase tracking-widest mb-4 text-sm border-b border-gray-200 pb-2">Cápsulas</h3>
+              <h3 className="font-bold uppercase tracking-widest mb-4 text-sm border-b border-gray-200 pb-2">Categorías</h3>
               <ul className="space-y-2">
                 <li>
                   <button 
@@ -129,16 +129,22 @@ export default function Shop() {
                     Ver Todo
                   </button>
                 </li>
-                {categories.map(cat => (
-                  <li key={cat.id}>
-                    <button 
-                      onClick={() => handleCategoryChange(cat.name)}
-                      className={`text-sm hover:text-black transition-colors ${selectedCategory === cat.name ? 'text-black font-bold' : 'text-gray-500'}`}
-                    >
-                      {cat.name}
-                    </button>
-                  </li>
-                ))}
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <li key={i} className="h-5 bg-gray-200 animate-pulse rounded w-24"></li>
+                  ))
+                ) : (
+                  categories.map(cat => (
+                    <li key={cat.id}>
+                      <button 
+                        onClick={() => handleCategoryChange(cat.name)}
+                        className={`text-sm hover:text-black transition-colors ${selectedCategory === cat.name ? 'text-black font-bold' : 'text-gray-500'}`}
+                      >
+                        {cat.name}
+                      </button>
+                    </li>
+                  ))
+                )}
               </ul>
             </div>
 
@@ -201,10 +207,24 @@ export default function Shop() {
         {/* Product Grid */}
         <div className="lg:w-3/4">
           <div className="mb-6 text-sm text-gray-500">
-            Mostrando {filteredProducts.length} productos
+            {isLoading ? (
+              <div className="h-5 bg-gray-200 animate-pulse rounded w-48"></div>
+            ) : (
+              `Mostrando ${filteredProducts.length} productos`
+            )}
           </div>
           
-          {filteredProducts.length > 0 ? (
+          {isLoading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 sm:gap-x-8 gap-y-8 sm:gap-y-12">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="flex flex-col animate-pulse">
+                  <div className="aspect-[3/4] bg-gray-200 w-full mb-4"></div>
+                  <div className="h-4 bg-gray-200 w-3/4 mb-2"></div>
+                  <div className="h-4 bg-gray-200 w-1/2"></div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 sm:gap-x-8 gap-y-8 sm:gap-y-12">
               {filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />

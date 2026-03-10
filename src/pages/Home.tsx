@@ -6,7 +6,7 @@ import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 
 export default function Home() {
-  const { products, categories } = useProducts();
+  const { products, categories, isLoading } = useProducts();
 
   return (
     <>
@@ -15,34 +15,48 @@ export default function Home() {
       {/* Categories Section */}
       <section className="py-20 px-4 max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-serif font-bold mb-4">Cápsulas</h2>
+          <h2 className="text-3xl font-serif font-bold mb-4">Categorías</h2>
           <div className="w-12 h-0.5 bg-black mx-auto"></div>
         </div>
         
         <div className="flex overflow-x-auto gap-8 pb-8 snap-x snap-mandatory scrollbar-hide">
-          {categories.map((category) => (
-            <motion.div 
-              key={category.id}
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="relative group cursor-pointer overflow-hidden h-[400px] min-w-[300px] flex-shrink-0 snap-center"
-            >
-              <Link to={`/shop?category=${encodeURIComponent(category.name)}`} className="block w-full h-full">
-                <img 
-                  src={category.image} 
-                  alt={category.name} 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
-                  <h3 className="text-white text-2xl font-serif font-bold tracking-widest uppercase border-b-2 border-white pb-2">
-                    {category.name}
-                  </h3>
+          {isLoading ? (
+            // Skeleton for categories
+            Array.from({ length: 4 }).map((_, index) => (
+              <div 
+                key={index}
+                className="relative overflow-hidden h-[400px] min-w-[300px] flex-shrink-0 snap-center bg-gray-200 animate-pulse"
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-8 w-32 bg-gray-300 rounded"></div>
                 </div>
-              </Link>
-            </motion.div>
-          ))}
+              </div>
+            ))
+          ) : (
+            categories.map((category) => (
+              <motion.div 
+                key={category.id}
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="relative group cursor-pointer overflow-hidden h-[400px] min-w-[300px] flex-shrink-0 snap-center"
+              >
+                <Link to={`/shop?category=${encodeURIComponent(category.name)}`} className="block w-full h-full">
+                  <img 
+                    src={category.image} 
+                    alt={category.name} 
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
+                    <h3 className="text-white text-2xl font-serif font-bold tracking-widest uppercase border-b-2 border-white pb-2">
+                      {category.name}
+                    </h3>
+                  </div>
+                </Link>
+              </motion.div>
+            ))
+          )}
         </div>
       </section>
 
@@ -57,9 +71,20 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 sm:gap-x-8 gap-y-8 sm:gap-y-12">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            {isLoading ? (
+              // Skeleton for products
+              Array.from({ length: 8 }).map((_, index) => (
+                <div key={index} className="flex flex-col animate-pulse">
+                  <div className="aspect-[3/4] bg-gray-200 w-full mb-4"></div>
+                  <div className="h-4 bg-gray-200 w-3/4 mb-2"></div>
+                  <div className="h-4 bg-gray-200 w-1/2"></div>
+                </div>
+              ))
+            ) : (
+              products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))
+            )}
           </div>
           
           <div className="text-center mt-16">
@@ -111,7 +136,7 @@ export default function Home() {
               Es recordar quién eras antes del ruido, antes del miedo, antes de convertirte en una versión que no se sentía propia.
             </p>
             <p className="text-gray-600 mb-6 leading-relaxed">
-              Nuestra primera cápsula, RAÍZ, habla de estabilidad. De identidad. De reconstrucción silenciosa.
+              Nuestra primera categoría, RAÍZ, habla de estabilidad. De identidad. De reconstrucción silenciosa.
               Deseo que cada prenda que uses recuerdes lo valiosa, fuerte, poderosa que eres y todo lo que has superado.
             </p>
             <p className="text-gray-600 mb-8 leading-relaxed font-medium italic">

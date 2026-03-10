@@ -2,26 +2,48 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useProducts } from '../context/ProductContext';
-import { Package, Users, Tag, Settings, Truck, Edit, Trash2, Plus, CheckCircle, XCircle, Image as ImageIcon, Ruler, Folder, FileText, DollarSign } from 'lucide-react';
+import { Package, Users, Tag, Settings, Truck, Edit, Trash2, Plus, CheckCircle, XCircle, Image as ImageIcon, Ruler, Folder, FileText, DollarSign, Eye, X, LayoutDashboard, Share2, Mail, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { Toast } from '../components/Toast';
 import { ConfirmModal } from '../components/ConfirmModal';
 import LoadingOverlay from '../components/LoadingOverlay';
 import Spinner from '../components/Spinner';
+import AdminDashboard from '../components/AdminDashboard';
+import SocialIcon from '../components/SocialIcon';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function Admin() {
   const { user } = useAuth();
-  const { coupons, addCoupon, toggleCouponStatus, deleteCoupon, freeShippingThreshold, setFreeShippingThreshold, baseShippingCost, setBaseShippingCost } = useCart();
-  const { products, categories, sizes, updateProduct, addProduct, deleteProduct, addSize, updateSize, deleteSize, addCategory, updateCategory, deleteCategory, isLoading: productsLoading } = useProducts();
+  const { 
+    coupons, addCoupon, toggleCouponStatus, deleteCoupon, 
+    freeShippingThreshold, setFreeShippingThreshold, 
+    baseShippingCost, setBaseShippingCost,
+    socialLinks, updateSocialLinks 
+  } = useCart();
+  const { products, categories, sizes, updateProduct, addProduct, deleteProduct, addSize, updateSize, deleteSize, addCategory, updateCategory, deleteCategory, isLoading: productsLoading, processReturn } = useProducts();
   
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'users' | 'settings' | 'sizes' | 'categories'>('orders');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'users' | 'settings' | 'sizes' | 'categories' | 'leads' | 'returns'>('dashboard');
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [viewingOrder, setViewingOrder] = useState<any | null>(null);
+  const [processingReturn, setProcessingReturn] = useState<{
+    orderId: string;
+    userId: string;
+    item: any;
+  } | null>(null);
+  const [manualReturnOpen, setManualReturnOpen] = useState(false);
+  const [returnReason, setReturnReason] = useState<'voluntary' | 'defect'>('voluntary');
+  const [exchangeProductId, setExchangeProductId] = useState<string>('');
+  const [exchangeVariantId, setExchangeVariantId] = useState<string>('');
+  const [returnNotes, setReturnNotes] = useState<string>('');
+  const [returns, setReturns] = useState<any[]>([]);
+  const [returnsLoading, setReturnsLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
+  const [leads, setLeads] = useState<any[]>([]);
+  const [leadsLoading, setLeadsLoading] = useState(true);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [pendingOrderUpdate, setPendingOrderUpdate] = useState<{
     orderId: string;
@@ -85,8 +107,9 @@ export default function Admin() {
     const tableRows = [];
 
     order.items?.forEach((item: any) => {
+      const variantInfo = (item.color || item.size) ? ` (${item.color || 'N/A'} / ${item.size || 'N/A'})` : '';
       const itemData = [
-        item.name || 'Producto',
+        (item.name || 'Producto') + variantInfo,
         item.quantity,
         `$${Number(item.price).toFixed(2)}`,
         `$${(Number(item.price) * item.quantity).toFixed(2)}`
@@ -114,6 +137,13 @@ export default function Admin() {
   const [newCouponDiscount, setNewCouponDiscount] = useState('');
   const [shippingThresholdInput, setShippingThresholdInput] = useState(freeShippingThreshold.toString());
   const [baseShippingCostInput, setBaseShippingCostInput] = useState(baseShippingCost.toString());
+  const [localSocialLinks, setLocalSocialLinks] = useState<{name: string, url: string}[]>([]);
+
+  useEffect(() => {
+    if (socialLinks) {
+      setLocalSocialLinks(socialLinks);
+    }
+  }, [socialLinks]);
 
   // Size Management State
   const [newSizeName, setNewSizeName] = useState('');
@@ -287,7 +317,7 @@ export default function Admin() {
         if (userIds.length > 0) {
           const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
-            .select('id, full_name, email, phone')
+            .select('id, full_name, email, phone, document_id')
             .in('id', userIds);
             
           if (!profilesError && profilesData) {
@@ -300,14 +330,17 @@ export default function Admin() {
           let customerName = 'Desconocido';
           let customerEmail = 'No disponible';
           let customerPhone = '';
+          let customerDocumentId = '';
 
           if (profile) {
             customerName = profile.full_name || 'Sin nombre';
             customerEmail = profile.email || 'Sin email';
             customerPhone = profile.phone || '';
+            customerDocumentId = profile.document_id || '';
           } else if (o.payment_details && o.payment_details.depositorName) {
              customerName = o.payment_details.depositorName;
              customerEmail = 'N/A (Pago Móvil/Transferencia)';
+             customerDocumentId = o.payment_details.depositorId || '';
           }
 
           return {
@@ -316,14 +349,17 @@ export default function Admin() {
             customer: {
                 full_name: customerName,
                 email: customerEmail,
-                phone: customerPhone
+                phone: customerPhone,
+                document_id: customerDocumentId
             },
             items: o.order_items.map((oi: any) => ({
               id: oi.products?.id,
               name: oi.products?.name,
               price: Number(oi.unit_price),
               image: oi.products?.image_url,
-              quantity: oi.quantity
+              quantity: oi.quantity,
+              color: oi.color,
+              size: oi.size
             })),
             paymentDetails: o.payment_details
           };
@@ -354,11 +390,79 @@ export default function Admin() {
     }
   };
 
+  const fetchAllLeads = async () => {
+    try {
+      setLeadsLoading(true);
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setLeads(data || []);
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+    } finally {
+      setLeadsLoading(false);
+    }
+  };
+
+  const fetchAllReturns = async () => {
+    try {
+      setReturnsLoading(true);
+      const { data, error } = await supabase
+        .from('returns')
+        .select(`
+          *,
+          product:products!returns_product_id_fkey(name, image_url),
+          exchange_product:products!returns_exchange_product_id_fkey(name)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+
+      // Manually fetch profiles for these returns
+      const userIds = [...new Set(data.map(r => r.user_id).filter(Boolean))];
+      let profilesMap = new Map();
+      
+      if (userIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', userIds);
+        
+        if (!profilesError && profilesData) {
+          profilesData.forEach(p => profilesMap.set(p.id, p));
+        }
+      }
+
+      const returnsWithCustomer = (data || []).map(r => ({
+        ...r,
+        customer: profilesMap.get(r.user_id) || { full_name: 'Usuario desconocido', email: '' }
+      }));
+
+      setReturns(returnsWithCustomer);
+    } catch (error) {
+      console.error('Error fetching returns:', error);
+    } finally {
+      setReturnsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'orders') {
       fetchAllOrders();
     } else if (activeTab === 'users') {
       fetchAllUsers();
+    } else if (activeTab === 'leads') {
+      fetchAllLeads();
+    } else if (activeTab === 'returns') {
+      fetchAllReturns();
+    } else if (activeTab === 'dashboard') {
+      fetchAllOrders();
+      fetchAllUsers();
+      fetchAllLeads();
+      fetchAllReturns();
     }
   }, [activeTab]);
 
@@ -455,13 +559,8 @@ export default function Admin() {
 
     if (message) {
       const encodedMessage = encodeURIComponent(message);
-      
-      let whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
-      if (pendingOrderUpdate.phoneNumber) {
-          // Clean phone number (remove non-digits)
-          const cleanPhone = pendingOrderUpdate.phoneNumber.replace(/\D/g, '');
-          whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
-      }
+      const storePhone = '584226413853';
+      const whatsappUrl = `https://wa.me/${storePhone}?text=${encodedMessage}`;
 
       window.open(whatsappUrl, '_blank');
     }
@@ -1210,6 +1309,7 @@ export default function Admin() {
                 <th className="p-4 font-bold">Producto</th>
                 <th className="p-4 font-bold">Precio</th>
                 <th className="p-4 font-bold">Stock</th>
+                <th className="p-4 font-bold">Dañado</th>
                 <th className="p-4 font-bold">Etiquetas</th>
                 <th className="p-4 font-bold">Acciones</th>
               </tr>
@@ -1419,8 +1519,8 @@ export default function Admin() {
                           {product.variants && product.variants.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {product.variants.map((v: any, i: number) => (
-                                <span key={i} className="text-[8px] bg-gray-100 px-1 rounded text-gray-500">
-                                  {v.color}/{v.size} ({v.stock})
+                                <span key={i} className={`text-[8px] px-1 rounded ${v.damagedStock > 0 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-500'}`}>
+                                  {v.color}/{v.size} ({v.stock}){v.damagedStock > 0 && ` [D: ${v.damagedStock}]`}
                                 </span>
                               ))}
                             </div>
@@ -1464,6 +1564,11 @@ export default function Admin() {
                           className={`w-16 border border-gray-300 rounded p-1 text-xs ${editVariants.length > 0 ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                           title={editVariants.length > 0 ? "Calculado automáticamente de las variantes" : "Stock manual"}
                         />
+                      </td>
+                      <td className="p-4">
+                        <div className="text-xs text-red-600 font-bold">
+                          {product.damagedStock || 0}
+                        </div>
                       </td>
                       <td className="p-4">
                         <div className="flex flex-col gap-1">
@@ -1537,6 +1642,13 @@ export default function Admin() {
                           'bg-red-100 text-red-800'
                         }`}>
                           {product.stock || 0}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                          (product.damagedStock || 0) > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'
+                        }`}>
+                          {product.damagedStock || 0}
                         </span>
                       </td>
                       <td className="p-4">
@@ -1753,6 +1865,7 @@ export default function Admin() {
               <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
                 <th className="p-4 font-bold">ID / Fecha</th>
                 <th className="p-4 font-bold">Cliente</th>
+                <th className="p-4 font-bold">Productos</th>
                 <th className="p-4 font-bold">Envío</th>
                 <th className="p-4 font-bold">Pago</th>
                 <th className="p-4 font-bold">Total</th>
@@ -1778,6 +1891,20 @@ export default function Admin() {
                     <div className="flex flex-col">
                       <span className="text-sm font-bold">{order.customer?.full_name || 'Desconocido'}</span>
                       <span className="text-xs text-gray-500">{order.customer?.email || 'No disponible'}</span>
+                    </div>
+                  </td>
+                  <td className="p-4 align-top">
+                    <div className="flex flex-col gap-1 max-w-[150px]">
+                      {order.items?.map((item: any, idx: number) => (
+                        <div key={idx} className="text-[10px] border-b border-gray-50 pb-1 last:border-0 last:pb-0">
+                          <span className="font-bold">{item.quantity}x</span> {item.name}
+                          {item.color || item.size ? (
+                            <span className="text-gray-400 block italic">
+                              ({item.color || 'N/A'} / {item.size || 'N/A'})
+                            </span>
+                          ) : null}
+                        </div>
+                      ))}
                     </div>
                   </td>
                   <td className="p-4 align-top">
@@ -1837,13 +1964,19 @@ export default function Admin() {
                       >
                         <FileText size={12} /> Imprimir PDF
                       </button>
+                      <button 
+                        onClick={() => setViewingOrder(order)}
+                        className="flex items-center justify-center gap-1 bg-black hover:bg-gray-800 text-white text-xs font-bold py-1 px-2 rounded transition-colors"
+                      >
+                        <Eye size={12} /> Ver Detalles
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-500">
+                  <td colSpan={8} className="p-8 text-center text-gray-500">
                     No hay pedidos registrados.
                   </td>
                 </tr>
@@ -1854,6 +1987,41 @@ export default function Admin() {
       </div>
     </div>
   );
+
+  const handleProcessReturn = async () => {
+    if (!processingReturn) return;
+    
+    setIsUploading(true);
+    try {
+      await processReturn({
+        orderId: processingReturn.orderId,
+        userId: processingReturn.userId,
+        productId: processingReturn.item.product_id || processingReturn.item.productId,
+        variantId: processingReturn.item.variant_id || processingReturn.item.variantId,
+        quantity: processingReturn.item.quantity,
+        reason: returnReason,
+        exchangeProductId: exchangeProductId || undefined,
+        exchangeVariantId: exchangeVariantId || undefined,
+        notes: returnNotes
+      });
+      
+      setProcessingReturn(null);
+      setReturnReason('voluntary');
+      setExchangeProductId('');
+      setExchangeVariantId('');
+      setReturnNotes('');
+      showToast('Devolución procesada correctamente', 'success');
+      fetchAllReturns();
+    } catch (error) {
+      showToast('Error al procesar devolución', 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  const handleSaveSocialLinks = async () => {
+    await updateSocialLinks(localSocialLinks);
+    setToast({ visible: true, message: 'Redes sociales actualizadas', type: 'success' });
+  };
 
   const renderSettings = () => (
     <div className="space-y-8">
@@ -1892,6 +2060,85 @@ export default function Admin() {
             className="bg-black text-white px-8 py-2 rounded text-sm font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors"
           >
             Guardar Cambios
+          </button>
+        </div>
+      </div>
+
+      {/* Social Media Settings */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <Share2 size={20} /> Redes Sociales
+        </h3>
+        <p className="text-sm text-gray-500 mb-6">Configura los enlaces que aparecen en el pie de página y contacto.</p>
+        
+        <div className="space-y-4 mb-6">
+          {localSocialLinks.map((link, index) => (
+            <div key={index} className="flex gap-4 items-start bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <div className="w-10 h-10 bg-white rounded-lg border border-gray-200 flex items-center justify-center shrink-0 mt-6">
+                <SocialIcon name={link.name} url={link.url} size={20} className="text-gray-400" />
+              </div>
+              <div className="flex-1 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Nombre de la Red</label>
+                    <input 
+                      type="text" 
+                      value={link.name}
+                      onChange={(e) => {
+                        const updated = [...localSocialLinks];
+                        updated[index].name = e.target.value;
+                        setLocalSocialLinks(updated);
+                      }}
+                      placeholder="Ej: Instagram, TikTok, Facebook"
+                      className="w-full border border-gray-300 p-2 rounded text-sm focus:outline-none focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Enlace (URL)</label>
+                    <input 
+                      type="url" 
+                      value={link.url}
+                      onChange={(e) => {
+                        const updated = [...localSocialLinks];
+                        updated[index].url = e.target.value;
+                        setLocalSocialLinks(updated);
+                      }}
+                      placeholder="https://instagram.com/tuusuario"
+                      className="w-full border border-gray-300 p-2 rounded text-sm focus:outline-none focus:border-black"
+                    />
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setLocalSocialLinks(localSocialLinks.filter((_, i) => i !== index))}
+                className="text-red-500 hover:text-red-700 p-2"
+                title="Eliminar"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+          
+          {localSocialLinks.length === 0 && (
+            <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-gray-400 text-sm">
+              No hay redes sociales configuradas.
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-between items-center">
+          <button 
+            onClick={() => setLocalSocialLinks([...localSocialLinks, { name: '', url: '' }])}
+            className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest hover:text-gray-600 transition-colors"
+          >
+            <Plus size={16} /> Agregar Red Social
+          </button>
+          
+          <button 
+            onClick={handleSaveSocialLinks}
+            className="bg-black text-white px-8 py-2 rounded text-sm font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors"
+          >
+            Guardar Redes
           </button>
         </div>
       </div>
@@ -2019,6 +2266,11 @@ export default function Admin() {
                         {u.full_name?.charAt(0) || u.email?.charAt(0) || '?'}
                       </div>
                       <span className="font-medium text-sm">{u.full_name || 'Sin nombre'}</span>
+                      {u.is_lead_conversion && (
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase tracking-tighter">
+                          Lead
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="p-4 text-sm text-gray-600">{u.email}</td>
@@ -2048,6 +2300,146 @@ export default function Admin() {
     </div>
   );
 
+  const renderLeads = () => (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+        <h2 className="text-xl font-serif font-bold">Leads de Suscripción</h2>
+        <div className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
+          {leads.length} Total
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        {leadsLoading ? (
+          <div className="p-12 flex justify-center">
+            <Spinner />
+          </div>
+        ) : (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-[10px] uppercase tracking-widest text-gray-400 font-bold">
+                <th className="p-4">Email</th>
+                <th className="p-4">WhatsApp</th>
+                <th className="p-4">Estado</th>
+                <th className="p-4">Fecha</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {leads.map((lead) => (
+                <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="p-4 text-sm font-medium">{lead.email}</td>
+                  <td className="p-4 text-sm text-gray-600">{lead.whatsapp || '-'}</td>
+                  <td className="p-4">
+                    {lead.converted_user_id ? (
+                      <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase">
+                        Convertido
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full uppercase">
+                        Pendiente
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-4 text-sm text-gray-500">
+                    {new Date(lead.created_at).toLocaleDateString('es-ES', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </td>
+                </tr>
+              ))}
+              {leads.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="p-8 text-center text-gray-500">
+                    No hay leads registrados aún.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderReturns = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-serif font-bold">Gestión de Devoluciones</h2>
+        <button 
+          onClick={() => setManualReturnOpen(true)}
+          className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold uppercase flex items-center gap-2 hover:bg-gray-800 transition-colors"
+        >
+          <Plus size={18} /> Registrar Devolución Manual
+        </button>
+      </div>
+      
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {returnsLoading ? (
+          <div className="p-12 flex justify-center">
+            <Spinner size="xl" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
+                  <th className="p-4 font-bold">ID Orden</th>
+                  <th className="p-4 font-bold">Cliente</th>
+                  <th className="p-4 font-bold">Producto Devuelto</th>
+                  <th className="p-4 font-bold">Motivo</th>
+                  <th className="p-4 font-bold">Cambio por</th>
+                  <th className="p-4 font-bold">Fecha</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {returns.map(r => (
+                  <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 font-mono text-xs">#{r.order_id.slice(0, 8)}</td>
+                    <td className="p-4">
+                      <div className="text-sm font-medium">{r.customer?.full_name}</div>
+                      <div className="text-xs text-gray-500">{r.customer?.email}</div>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        {r.product?.image_url && (
+                          <img src={r.product.image_url} alt="" className="w-8 h-8 rounded object-cover" />
+                        )}
+                        <span className="text-sm">{r.product?.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                        r.reason === 'defect' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {r.reason === 'defect' ? 'Garantía' : 'Voluntaria'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-sm">
+                      {r.exchange_product?.name || 'Mismo producto'}
+                    </td>
+                    <td className="p-4 text-sm text-gray-500">
+                      {new Date(r.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+                {returns.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-12 text-center text-gray-500">
+                      No hay devoluciones registradas.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-20 px-4">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8">
@@ -2061,6 +2453,14 @@ export default function Admin() {
             </div>
             
             <nav className="space-y-1">
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'dashboard' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <LayoutDashboard size={18} /> Dashboard
+              </button>
               <button
                 onClick={() => setActiveTab('orders')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
@@ -2084,6 +2484,22 @@ export default function Admin() {
                 }`}
               >
                 <Users size={18} /> Usuarios
+              </button>
+              <button
+                onClick={() => setActiveTab('leads')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'leads' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Mail size={18} /> Leads
+              </button>
+              <button
+                onClick={() => setActiveTab('returns')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'returns' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <RotateCcw size={18} /> Devoluciones
               </button>
               <button
                 onClick={() => setActiveTab('categories')}
@@ -2121,10 +2537,21 @@ export default function Admin() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
           >
+            {activeTab === 'dashboard' && (
+              (ordersLoading || usersLoading || productsLoading || leadsLoading) ? (
+                <div className="flex justify-center items-center h-64">
+                  <Spinner size="xl" />
+                </div>
+              ) : (
+                <AdminDashboard orders={orders} products={products} users={users} leads={leads} />
+              )
+            )}
             {activeTab === 'orders' && renderOrders()}
             {activeTab === 'settings' && renderSettings()}
             {activeTab === 'products' && renderProducts()}
             {activeTab === 'users' && renderUsers()}
+            {activeTab === 'leads' && renderLeads()}
+            {activeTab === 'returns' && renderReturns()}
             {activeTab === 'sizes' && renderSizes()}
             {activeTab === 'categories' && renderCategories()}
           </motion.div>
@@ -2206,6 +2633,362 @@ export default function Admin() {
           </motion.div>
         </div>
       )}
+
+      {/* Order Details Modal */}
+      <AnimatePresence>
+        {viewingOrder && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col relative overflow-hidden"
+            >
+              {/* Fixed Header */}
+              <div className="p-6 border-b border-gray-100 shrink-0 flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-serif font-bold">Detalles del Pedido</h2>
+                  <div className="flex flex-wrap items-center gap-3 mt-2">
+                    <span className="font-mono text-sm text-gray-500">#{viewingOrder.id}</span>
+                    <span className="text-sm text-gray-500">•</span>
+                    <span className="text-sm text-gray-500">{new Date(viewingOrder.created_at || viewingOrder.date).toLocaleString()}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      viewingOrder.status === 'Enviado' ? 'bg-blue-100 text-blue-800' :
+                      viewingOrder.status === 'Pago Aprobado' ? 'bg-green-100 text-green-800' :
+                      viewingOrder.status === 'Entregado' ? 'bg-gray-100 text-gray-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {viewingOrder.status}
+                    </span>
+                    {(viewingOrder.is_gift || viewingOrder.isGift) && (
+                      <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        Regalo
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setViewingOrder(null)}
+                  className="text-gray-400 hover:text-black transition-colors p-1"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Scrollable Body */}
+              <div className="p-6 overflow-y-auto flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                  {/* Customer Info */}
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
+                      <Users size={16} /> Datos del Cliente
+                    </h3>
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                      <p><span className="font-medium text-gray-500">Nombre:</span> {viewingOrder.customer?.full_name}</p>
+                      <p><span className="font-medium text-gray-500">Email:</span> {viewingOrder.customer?.email}</p>
+                      <p><span className="font-medium text-gray-500">Teléfono:</span> {viewingOrder.customer?.phone || 'No especificado'}</p>
+                      <p><span className="font-medium text-gray-500">Cédula / ID:</span> {viewingOrder.customer?.document_id || 'No especificado'}</p>
+                    </div>
+                  </div>
+
+                  {/* Shipping Info */}
+                  <div>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
+                      <Truck size={16} /> Envío
+                    </h3>
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                      <p><span className="font-medium text-gray-500">Dirección:</span> {viewingOrder.shipping_address}</p>
+                      <p><span className="font-medium text-gray-500">Ciudad:</span> {viewingOrder.city || 'No especificada'}</p>
+                      <p><span className="font-medium text-gray-500">Estado:</span> {viewingOrder.state || 'No especificado'}</p>
+                      <p><span className="font-medium text-gray-500">Código Postal:</span> {viewingOrder.zip_code || 'No especificado'}</p>
+                      {viewingOrder.shipping_method && (
+                        <p><span className="font-medium text-gray-500">Método de Envío:</span> {viewingOrder.shipping_method}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gift Details */}
+                {(viewingOrder.gift_details || viewingOrder.giftDetails) && (
+                  <div className="mb-8">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-purple-600 mb-3 flex items-center gap-2">
+                      <Package size={16} /> Detalles del Regalo
+                    </h3>
+                    <div className="bg-purple-50 p-4 rounded-lg space-y-2 text-sm border border-purple-100">
+                      <p><span className="font-medium text-purple-800">Para:</span> {(viewingOrder.gift_details || viewingOrder.giftDetails).recipientName}</p>
+                      <p><span className="font-medium text-purple-800">De:</span> {(viewingOrder.gift_details || viewingOrder.giftDetails).senderName}</p>
+                      <p><span className="font-medium text-purple-800">Mensaje:</span></p>
+                      <p className="italic text-gray-700 bg-white p-3 rounded border border-purple-100 mt-1">
+                        "{(viewingOrder.gift_details || viewingOrder.giftDetails).message}"
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Details */}
+                <div className="mb-8">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
+                    <DollarSign size={16} /> Detalles de Pago
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                    <p><span className="font-medium text-gray-500">Método:</span> {
+                      viewingOrder.payment_method === 'pago-movil' ? 'Pago Móvil' : 
+                      viewingOrder.payment_method === 'transferencia' ? 'Transferencia Bancaria' :
+                      viewingOrder.payment_method
+                    }</p>
+                    {viewingOrder.paymentDetails && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-2 border-t border-gray-200">
+                        <p><span className="font-medium text-gray-500">Banco:</span> {viewingOrder.paymentDetails.bank}</p>
+                        <p><span className="font-medium text-gray-500">Referencia:</span> {viewingOrder.paymentDetails.referenceNumber}</p>
+                        <p><span className="font-medium text-gray-500">Depositante:</span> {viewingOrder.paymentDetails.depositorName}</p>
+                        <p><span className="font-medium text-gray-500">C.I. Depositante:</span> {viewingOrder.paymentDetails.depositorId}</p>
+                        <p><span className="font-medium text-gray-500">Fecha del Pago:</span> {viewingOrder.paymentDetails.date}</p>
+                        {viewingOrder.paymentDetails.amount && (
+                          <p><span className="font-medium text-gray-500">Monto Reportado:</span> {viewingOrder.paymentDetails.amount}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Items */}
+                <div className="mb-8">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
+                    <Package size={16} /> Productos
+                  </h3>
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                          <tr>
+                            <th className="p-3 font-medium text-gray-500">Producto</th>
+                            <th className="p-3 font-medium text-gray-500">Variante</th>
+                            <th className="p-3 font-medium text-gray-500 text-center">Cant.</th>
+                            <th className="p-3 font-medium text-gray-500 text-right">Precio</th>
+                            <th className="p-3 font-medium text-gray-500 text-right">Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {viewingOrder.items?.map((item: any, index: number) => (
+                            <tr key={index}>
+                              <td className="p-3 font-medium">{item.name}</td>
+                              <td className="p-3 text-gray-500">
+                                {item.color && item.size ? `${item.color} / ${item.size}` : '-'}
+                              </td>
+                              <td className="p-3 text-center">{item.quantity}</td>
+                              <td className="p-3 text-right">${Number(item.price).toFixed(2)}</td>
+                              <td className="p-3 text-right font-medium">${(Number(item.price) * item.quantity).toFixed(2)}</td>
+                              <td className="p-3 text-right">
+                                <button 
+                                  onClick={() => setProcessingReturn({
+                                    orderId: viewingOrder.id,
+                                    userId: viewingOrder.user_id,
+                                    item: item
+                                  })}
+                                  className="text-amber-600 hover:text-amber-800 text-xs font-bold uppercase flex items-center gap-1 ml-auto"
+                                >
+                                  <RotateCcw size={12} /> Devolución
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Totals */}
+                <div className="flex justify-end border-t border-gray-100 pt-4">
+                  <div className="w-64 space-y-2 text-sm">
+                    <div className="flex justify-between text-gray-500">
+                      <span>Subtotal:</span>
+                      <span>${Number(viewingOrder.subtotal).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-500">
+                      <span>Envío:</span>
+                      <span>${Number(viewingOrder.shipping_cost || 0).toFixed(2)}</span>
+                    </div>
+                    {viewingOrder.discount > 0 && (
+                      <div className="flex justify-between text-red-500">
+                        <span>Descuento:</span>
+                        <span>-${Number(viewingOrder.discount).toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-100">
+                      <span>Total:</span>
+                      <span>${Number(viewingOrder.total).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fixed Footer */}
+              <div className="p-6 border-t border-gray-100 shrink-0 flex justify-end">
+                <button 
+                  onClick={() => setViewingOrder(null)}
+                  className="bg-black text-white px-8 py-2 rounded-lg text-sm font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Process Return Modal */}
+      <AnimatePresence>
+        {(processingReturn || manualReturnOpen) && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold">Procesar Devolución / Cambio</h3>
+                <button onClick={() => { setProcessingReturn(null); setManualReturnOpen(false); }} className="text-gray-400 hover:text-black">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {processingReturn?.item ? (
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 mb-4">
+                    <p className="text-sm font-medium text-amber-800">Producto a devolver:</p>
+                    <p className="text-sm text-amber-900 font-bold">{processingReturn.item.name}</p>
+                    <p className="text-xs text-amber-700">
+                      {processingReturn.item.color} / {processingReturn.item.size} ({processingReturn.item.quantity} ud.)
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Pedido (Enviado)</label>
+                      <select 
+                        className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black"
+                        onChange={(e) => {
+                          const order = orders.find(o => o.id === e.target.value);
+                          if (order) setProcessingReturn({ orderId: order.id, userId: order.user_id, item: null });
+                        }}
+                      >
+                        <option value="">Selecciona pedido</option>
+                        {orders.filter(o => o.status === 'Enviado').map(o => (
+                          <option key={o.id} value={o.id}>#{o.id.slice(0, 8)} - {o.customer?.full_name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {processingReturn?.orderId !== 'MANUAL' && processingReturn?.orderId && (
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Producto del Pedido</label>
+                        <select 
+                          className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black"
+                          onChange={(e) => {
+                            const order = orders.find(o => o.id === processingReturn.orderId);
+                            const item = order?.items?.find((i: any, idx: number) => `${idx}` === e.target.value);
+                            if (item) {
+                              setProcessingReturn({ 
+                                ...processingReturn, 
+                                item: { 
+                                  ...item, 
+                                  name: item.name,
+                                  productId: item.product_id || item.productId || item.id, 
+                                  variantId: item.variant_id || item.variantId, 
+                                  quantity: 1,
+                                  color: item.color,
+                                  size: item.size
+                                } 
+                              });
+                            }
+                          }}
+                        >
+                          <option value="">Selecciona producto</option>
+                          {orders.find(o => o.id === processingReturn.orderId)?.items?.map((item: any, idx: number) => (
+                            <option key={idx} value={idx}>{item.name} {item.color ? `(${item.color}/${item.size})` : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Motivo de la Devolución</label>
+                  <select 
+                    value={returnReason}
+                    onChange={(e) => setReturnReason(e.target.value as any)}
+                    className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black"
+                  >
+                    <option value="voluntary">Devolución Voluntaria</option>
+                    <option value="defect">Garantía por desperfecto</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Producto de Cambio (Opcional)</label>
+                  <select 
+                    value={exchangeProductId}
+                    onChange={(e) => {
+                      setExchangeProductId(e.target.value);
+                      setExchangeVariantId('');
+                    }}
+                    className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black"
+                  >
+                    <option value="">Mismo producto (o sin cambio inmediato)</option>
+                    {products.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {exchangeProductId && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Variante de Cambio</label>
+                    <select 
+                      value={exchangeVariantId}
+                      onChange={(e) => setExchangeVariantId(e.target.value)}
+                      className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black"
+                    >
+                      <option value="">Selecciona variante</option>
+                      {products.find(p => p.id === exchangeProductId)?.variants?.map(v => (
+                        <option key={v.id} value={v.id}>{v.color} / {v.size} (Stock: {v.stock})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Notas / Observaciones</label>
+                  <textarea 
+                    value={returnNotes}
+                    onChange={(e) => setReturnNotes(e.target.value)}
+                    placeholder="Detalles sobre el desperfecto o el cambio..."
+                    className="w-full border border-gray-300 p-2 rounded h-24 focus:outline-none focus:border-black"
+                  />
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button 
+                    onClick={() => { setProcessingReturn(null); setManualReturnOpen(false); }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-bold uppercase text-sm hover:bg-gray-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={handleProcessReturn}
+                    disabled={isUploading || !processingReturn}
+                    className="flex-1 px-4 py-2 bg-black text-white rounded-lg font-bold uppercase text-sm hover:bg-gray-800 transition-colors disabled:bg-gray-400"
+                  >
+                    {isUploading ? 'Procesando...' : 'Confirmar Cambio'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       
       <LoadingOverlay isLoading={isUploading} message="Procesando..." fullScreen={true} />
     </div>

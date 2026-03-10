@@ -6,7 +6,7 @@ const slides = [
   {
     id: 1,
     type: 'video',
-    src: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/Comprimido%20banner%20principal.mp4',
+    src: 'https://res.cloudinary.com/dgoxcbro5/video/upload/v1773163775/banner01_rtshmv.mp4',
     subtitle: 'Nueva Colección',
     title: 'Atrévete a ser tú misma',
     buttonText: 'Comprar Ahora'

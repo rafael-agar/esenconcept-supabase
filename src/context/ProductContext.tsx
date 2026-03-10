@@ -18,6 +18,17 @@ interface ProductContextType {
   addCategory: (category: Omit<Category, 'id'>, imageFile?: File) => Promise<void>;
   updateCategory: (category: Category, imageFile?: File) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
+  processReturn: (returnData: {
+    orderId: string;
+    userId: string;
+    productId: string;
+    variantId?: string;
+    quantity: number;
+    reason: 'voluntary' | 'defect';
+    exchangeProductId?: string;
+    exchangeVariantId?: string;
+    notes?: string;
+  }) => Promise<void>;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -120,6 +131,10 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         const totalVariantStock = productVariants.length > 0 
           ? productVariants.reduce((sum, v) => sum + (v.stock || 0), 0) 
           : p.stock;
+        
+        const totalDamagedStock = productVariants.length > 0
+          ? productVariants.reduce((sum, v) => sum + (v.damaged_stock || 0), 0)
+          : p.damaged_stock;
 
         return {
           id: p.id,
@@ -130,6 +145,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           careInstructions: p.care_instructions,
           price: Number(p.price),
           stock: totalVariantStock,
+          damagedStock: totalDamagedStock,
           image: p.image_url || 'https://via.placeholder.com/400',
           images: productImages.sort((a, b) => a.order_index - b.order_index).map(img => img.image_url),
           category: category?.name || 'Sin categoría',
@@ -152,6 +168,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
             colorCode: v.color_code,
             size: v.size,
             stock: v.stock,
+            damagedStock: v.damaged_stock,
             price: v.price ? Number(v.price) : undefined,
             sku: v.sku,
             imageUrl: v.image_url
@@ -627,6 +644,123 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const processReturn = async (returnData: {
+    orderId: string;
+    userId: string;
+    productId: string;
+    variantId?: string;
+    quantity: number;
+    reason: 'voluntary' | 'defect';
+    exchangeProductId?: string;
+    exchangeVariantId?: string;
+    notes?: string;
+  }) => {
+    try {
+      // 1. Record the return in the database
+      const { data: returnRecord, error: returnError } = await supabase
+        .from('returns')
+        .insert([{
+          order_id: returnData.orderId,
+          user_id: returnData.userId,
+          product_id: returnData.productId,
+          variant_id: returnData.variantId || null,
+          quantity: returnData.quantity,
+          reason: returnData.reason,
+          status: 'completed', // For now, we process it immediately
+          exchange_product_id: returnData.exchangeProductId || null,
+          exchange_variant_id: returnData.exchangeVariantId || null,
+          notes: returnData.notes
+        }])
+        .select()
+        .single();
+
+      if (returnError) throw returnError;
+
+      // 2. Adjust inventory for the returned item
+      // If it's voluntary, we put it back in sellable stock.
+      // If it's a defect, we put it in damaged_stock.
+      if (returnData.variantId) {
+        // Update variant stock
+        const { data: variant } = await supabase
+          .from('product_variants')
+          .select('stock, damaged_stock')
+          .eq('id', returnData.variantId)
+          .single();
+        
+        if (variant) {
+          if (returnData.reason === 'defect') {
+            await supabase
+              .from('product_variants')
+              .update({ damaged_stock: (variant.damaged_stock || 0) + returnData.quantity })
+              .eq('id', returnData.variantId);
+          } else {
+            await supabase
+              .from('product_variants')
+              .update({ stock: variant.stock + returnData.quantity })
+              .eq('id', returnData.variantId);
+          }
+        }
+      } else {
+        // Update product stock
+        const { data: product } = await supabase
+          .from('products')
+          .select('stock, damaged_stock')
+          .eq('id', returnData.productId)
+          .single();
+        
+        if (product) {
+          if (returnData.reason === 'defect') {
+            await supabase
+              .from('products')
+              .update({ damaged_stock: (product.damaged_stock || 0) + returnData.quantity })
+              .eq('id', returnData.productId);
+          } else {
+            await supabase
+              .from('products')
+              .update({ stock: product.stock + returnData.quantity })
+              .eq('id', returnData.productId);
+          }
+        }
+      }
+
+      // 3. Adjust inventory for the exchange item (the one being taken)
+      if (returnData.exchangeProductId) {
+        if (returnData.exchangeVariantId) {
+          const { data: exVariant } = await supabase
+            .from('product_variants')
+            .select('stock')
+            .eq('id', returnData.exchangeVariantId)
+            .single();
+          
+          if (exVariant) {
+            await supabase
+              .from('product_variants')
+              .update({ stock: Math.max(0, exVariant.stock - returnData.quantity) })
+              .eq('id', returnData.exchangeVariantId);
+          }
+        } else {
+          const { data: exProduct } = await supabase
+            .from('products')
+            .select('stock')
+            .eq('id', returnData.exchangeProductId)
+            .single();
+          
+          if (exProduct) {
+            await supabase
+              .from('products')
+              .update({ stock: Math.max(0, exProduct.stock - returnData.quantity) })
+              .eq('id', returnData.exchangeProductId);
+          }
+        }
+      }
+
+      await fetchData(); // Refresh local state
+    } catch (error) {
+      console.error('Error processing return:', error);
+      throw error;
+    }
+  };
+
   return (
     <ProductContext.Provider value={{ 
       products, 
@@ -643,7 +777,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       deleteSize,
       addCategory,
       updateCategory,
-      deleteCategory
+      deleteCategory,
+      processReturn
     }}>
       {children}
     </ProductContext.Provider>

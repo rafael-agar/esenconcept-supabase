@@ -44,6 +44,13 @@ interface CartContextType {
   deleteCoupon: (code: string) => Promise<void>;
   freeShippingThreshold: number;
   setFreeShippingThreshold: (amount: number) => Promise<void>;
+  socialLinks: SocialLink[];
+  updateSocialLinks: (links: SocialLink[]) => Promise<void>;
+}
+
+export interface SocialLink {
+  name: string;
+  url: string;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -56,6 +63,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(100);
   const [baseShippingCost, setBaseShippingCost] = useState(6);
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
 
   const fetchSettings = async () => {
@@ -68,8 +76,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (data) {
         const threshold = data.find(s => s.key === 'free_shipping_threshold')?.value;
         const cost = data.find(s => s.key === 'base_shipping_cost')?.value;
+        const social = data.find(s => s.key === 'social_links')?.value;
+        
         if (threshold !== undefined) setFreeShippingThreshold(Number(threshold));
         if (cost !== undefined) setBaseShippingCost(Number(cost));
+        if (social !== undefined) {
+          try {
+            setSocialLinks(JSON.parse(social));
+          } catch (e) {
+            console.error('Error parsing social links:', e);
+            setSocialLinks([]);
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -125,6 +143,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       setBaseShippingCost(amount);
     } catch (error) {
       console.error('Error updating base shipping cost:', error);
+    }
+  };
+
+  const updateSocialLinks = async (links: SocialLink[]) => {
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ key: 'social_links', value: JSON.stringify(links) });
+      if (error) throw error;
+      setSocialLinks(links);
+    } catch (error) {
+      console.error('Error updating social links:', error);
     }
   };
 
@@ -292,7 +322,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       freeShippingThreshold,
       setFreeShippingThreshold: updateShippingThreshold,
       baseShippingCost,
-      setBaseShippingCost: updateBaseShippingCost
+      setBaseShippingCost: updateBaseShippingCost,
+      socialLinks,
+      updateSocialLinks
     }}>
       {children}
     </CartContext.Provider>

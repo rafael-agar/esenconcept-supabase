@@ -15,7 +15,7 @@ const ReturnsAndWarranty: React.FC = () => {
 
         <div className="space-y-8">
           <p className="text-gray-600 leading-relaxed">
-            En ESEN diseñamos cápsulas limitadas con altos estándares de calidad, cuidando cada detalle en proceso, confección y acabado. Antes de solicitar un cambio o garantía, te invitamos a leer cuidadosamente la siguiente información:
+            En ESEN diseñamos categorías limitadas con altos estándares de calidad, cuidando cada detalle en proceso, confección y acabado. Antes de solicitar un cambio o garantía, te invitamos a leer cuidadosamente la siguiente información:
           </p>
 
           <section>
@@ -37,9 +37,9 @@ const ReturnsAndWarranty: React.FC = () => {
           <section className="bg-gray-50 p-6 rounded-xl border border-gray-100">
             <h3 className="text-lg font-serif font-bold mb-3 text-gray-900">Condiciones especiales:</h3>
             <ul className="list-disc pl-5 space-y-2 text-gray-600 marker:text-gray-400">
-              <li>Las prendas de cápsulas anteriores solo podrán cambiarse por productos de la misma cápsula (sujeto a disponibilidad).</li>
+              <li>Las prendas de categorías anteriores solo podrán cambiarse por productos de la misma categoría (sujeto a disponibilidad).</li>
               <li>El cambio se realizará por el valor actual vigente de la prenda.</li>
-              <li>No se permiten cambios de prendas de colecciones anteriores por artículos de nueva cápsula.</li>
+              <li>No se permiten cambios de prendas de colecciones anteriores por artículos de nueva categoría.</li>
               <li><strong>ESEN no realiza devoluciones de dinero.</strong></li>
             </ul>
           </section>
@@ -77,7 +77,7 @@ const ReturnsAndWarranty: React.FC = () => {
             
             <div className="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-lg">
               <p className="text-amber-800 text-sm leading-relaxed">
-                Al trabajar con cápsulas limitadas, algunas piezas pueden no estar disponibles para reposición. En caso de no contar con inventario, se ofrecerá cambio por otro producto de valor equivalente.
+                Al trabajar con categorías limitadas, algunas piezas pueden no estar disponibles para reposición. En caso de no contar con inventario, se ofrecerá cambio por otro producto de valor equivalente.
               </p>
             </div>
           </section>

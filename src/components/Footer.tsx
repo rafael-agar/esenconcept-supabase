@@ -1,12 +1,48 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Instagram, Twitter } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Share2, Mail } from 'lucide-react';
 import ContactModal from './ContactModal';
 import { useProducts } from '../context/ProductContext';
+import { useCart } from '../context/CartContext';
+import { supabase } from '../lib/supabase';
+import SocialIcon from './SocialIcon';
 
 export default function Footer() {
   const { categories } = useProducts();
+  const { socialLinks } = useCart();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+
+    setIsSubmitting(true);
+    setSubscriptionStatus('idle');
+
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .insert([{ email, whatsapp }]);
+
+      if (error) throw error;
+      
+      setSubscriptionStatus('success');
+      setEmail('');
+      setWhatsapp('');
+      
+      // Reset success message after 5 seconds
+      setTimeout(() => setSubscriptionStatus('idle'), 5000);
+    } catch (error) {
+      console.error('Error subscribing:', error);
+      setSubscriptionStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <footer className="bg-black text-white pt-16 pb-8">
@@ -19,16 +55,27 @@ export default function Footer() {
               Moda contemporánea para la mujer moderna. Diseños únicos que inspiran confianza y elegancia.
             </p>
             <div className="flex space-x-4 pt-2">
-              <a href="https://www.instagram.com/esenconcept" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors"><Instagram size={20} /></a>
-              <a href="https://www.tiktok.com/@esenconcept" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                <svg 
-                  viewBox="0 0 24 24" 
-                  className="w-5 h-5 fill-current"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.9-.32-1.98-.23-2.81.36-.54.38-.89.96-.99 1.6-.13.58-.1 1.18.09 1.74.36.93 1.2 1.63 2.18 1.81.74.14 1.53.01 2.18-.36.6-.33 1.03-.91 1.21-1.58.12-.48.13-.97.12-1.46-.01-4.58-.02-9.17-.03-13.75z"/>
-                </svg>
-              </a>
+              {socialLinks.length > 0 ? (
+                socialLinks.map((link, index) => (
+                  <a 
+                    key={index} 
+                    href={link.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-gray-400 hover:text-white transition-colors"
+                    title={link.name}
+                  >
+                    <SocialIcon name={link.name} url={link.url} size={20} />
+                  </a>
+                ))
+              ) : (
+                <>
+                  <a href="https://www.instagram.com/esenconcept" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors"><Instagram size={20} /></a>
+                  <a href="https://www.tiktok.com/@esenconcept" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+                    <SocialIcon name="TikTok" url="https://www.tiktok.com/@esenconcept" size={20} />
+                  </a>
+                </>
+              )}
             </div>
           </div>
 
@@ -93,18 +140,45 @@ export default function Footer() {
                 Recibe las últimas novedades y <strong className="text-white font-medium">ofertas exclusivas</strong>. Suscríbete hoy y podrías <strong className="text-amber-400 font-medium">ganarte un cupón</strong> de descuento para tu próxima compra.
               </p>
               
-              <form className="flex flex-col space-y-3">
+              <form onSubmit={handleSubscribe} className="flex flex-col space-y-3">
                 <div className="relative">
                   <input
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="Tu correo electrónico"
+                    required
                     className="w-full bg-black/50 border border-zinc-700 text-white px-4 py-3.5 text-sm rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all placeholder:text-zinc-600"
                   />
                 </div>
-                <button className="w-full bg-white text-black px-4 py-3.5 text-sm font-bold uppercase tracking-widest rounded-xl hover:bg-amber-50 hover:text-amber-900 hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(251,191,36,0.2)]">
-                  Suscribirme
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder="WhatsApp (opcional)"
+                    className="w-full bg-black/50 border border-zinc-700 text-white px-4 py-3.5 text-sm rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all placeholder:text-zinc-600"
+                  />
+                </div>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-white text-black px-4 py-3.5 text-sm font-bold uppercase tracking-widest rounded-xl hover:bg-amber-50 hover:text-amber-900 hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(251,191,36,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Suscribiendo...' : 'Suscribirme'}
+                  {!isSubmitting && <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>}
                 </button>
+                
+                {subscriptionStatus === 'success' && (
+                  <p className="text-amber-400 text-xs text-center font-medium animate-pulse">
+                    ¡Gracias por suscribirte! Revisa tu correo pronto.
+                  </p>
+                )}
+                {subscriptionStatus === 'error' && (
+                  <p className="text-red-400 text-xs text-center font-medium">
+                    Hubo un error. Inténtalo de nuevo.
+                  </p>
+                )}
               </form>
             </div>
           </div>

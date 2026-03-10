@@ -97,7 +97,7 @@ export default function About() {
         >
           <div className="md:w-1/2 space-y-8 text-lg md:text-xl leading-relaxed font-light">
             <motion.p variants={fadeIn}>
-              Nuestra primera cápsula, <strong className="font-serif">RAÍZ</strong>, habla de estabilidad. <br/>
+              Nuestra primera categoría, <strong className="font-serif">RAÍZ</strong>, habla de estabilidad. <br/>
               De identidad. <br/>
               De reconstrucción silenciosa. <br/>
               De esa fuerza que no siempre se ve, pero siempre sostiene.
