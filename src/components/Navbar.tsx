@@ -3,7 +3,7 @@ import { ShoppingBag, Search, Menu, X, User, ChevronDown, ArrowRight, LogOut, He
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useProducts } from '../context/ProductContext';
 
 export default function Navbar() {
@@ -17,6 +17,7 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -28,6 +29,9 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const isHome = location.pathname === '/';
+  const isTransparent = isHome && !isScrolled;
 
   useEffect(() => {
     if (isSearchOpen && searchInputRef.current) {
@@ -53,14 +57,14 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md border-b border-gray-100' : 'bg-transparent'}`}>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isTransparent ? 'bg-transparent' : 'bg-white/80 backdrop-blur-md border-b border-gray-100'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Mobile Menu Button */}
             <div className="flex items-center md:hidden flex-shrink-0">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className={`${isScrolled ? 'text-gray-500 hover:text-black' : 'text-white/80 hover:text-white'} focus:outline-none transition-colors`}
+                className={`${isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-500 hover:text-black'} focus:outline-none transition-colors`}
               >
                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -70,7 +74,7 @@ export default function Navbar() {
             <div className="flex-1 flex items-center justify-center md:justify-start md:flex-none md:w-auto">
               <Link to="/" className="text-2xl font-serif font-bold tracking-wider">
                 <img 
-                  src={isScrolled ? "https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/ESEN%20logo%20negro.png" : "https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/ESEN%20logo%20blanco.png"} 
+                  src={isTransparent ? "https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/ESEN%20logo%20blanco.png" : "https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/ESEN%20logo%20negro.png"} 
                   alt="ESEN CONCEPT" 
                   className="h-8 w-auto object-contain transition-opacity duration-300"
                   onError={(e) => {
@@ -83,8 +87,8 @@ export default function Navbar() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex space-x-8 items-center">
-              <Link to="/" className={`text-sm font-medium transition-colors uppercase tracking-wide ${isScrolled ? 'text-gray-700 hover:text-black' : 'text-white/80 hover:text-white'}`}>Inicio</Link>
-              <Link to="/shop" className={`text-sm font-medium transition-colors uppercase tracking-wide ${isScrolled ? 'text-gray-700 hover:text-black' : 'text-white/80 hover:text-white'}`}>Tienda</Link>
+              <Link to="/" className={`text-sm font-medium transition-colors uppercase tracking-wide ${isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-700 hover:text-black'}`}>Inicio</Link>
+              <Link to="/shop" className={`text-sm font-medium transition-colors uppercase tracking-wide ${isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-700 hover:text-black'}`}>Tienda</Link>
               
               {/* Collections Dropdown */}
               <div 
@@ -93,7 +97,7 @@ export default function Navbar() {
                 onMouseLeave={() => setIsCollectionsOpen(false)}
               >
                 <button 
-                  className={`flex items-center text-sm font-medium transition-colors uppercase tracking-wide focus:outline-none ${isScrolled ? 'text-gray-700 hover:text-black' : 'text-white/80 hover:text-white'}`}
+                  className={`flex items-center text-sm font-medium transition-colors uppercase tracking-wide focus:outline-none ${isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-700 hover:text-black'}`}
                 >
                   Categorías <ChevronDown size={14} className="ml-1" />
                 </button>
@@ -121,14 +125,14 @@ export default function Navbar() {
                 </AnimatePresence>
               </div>
 
-              <Link to="/about" className={`text-sm font-medium transition-colors uppercase tracking-wide ${isScrolled ? 'text-gray-700 hover:text-black' : 'text-white/80 hover:text-white'}`}>Sobre Mí</Link>
+              <Link to="/about" className={`text-sm font-medium transition-colors uppercase tracking-wide ${isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-700 hover:text-black'}`}>Sobre Mí</Link>
             </div>
 
             {/* Icons */}
             <div className="flex items-center space-x-4 flex-shrink-0">
               <button 
                 onClick={() => setIsSearchOpen(true)}
-                className={`transition-colors ${isScrolled ? 'text-gray-500 hover:text-black' : 'text-white/80 hover:text-white'}`}
+                className={`transition-colors ${isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-500 hover:text-black'}`}
               >
                 <Search size={20} />
               </button>
@@ -141,7 +145,7 @@ export default function Navbar() {
               >
                 <Link 
                   to={user ? "/profile" : "/login"}
-                  className={`transition-colors block py-2 ${isScrolled ? 'text-gray-500 hover:text-black' : 'text-white/80 hover:text-white'}`}
+                  className={`transition-colors block py-2 ${isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-500 hover:text-black'}`}
                 >
                   <User size={20} />
                 </Link>
@@ -198,11 +202,11 @@ export default function Navbar() {
 
               <button
                 onClick={() => setIsCartOpen(true)}
-                className={`transition-colors relative ${isScrolled ? 'text-gray-500 hover:text-black' : 'text-white/80 hover:text-white'}`}
+                className={`transition-colors relative ${isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-500 hover:text-black'}`}
               >
                 <ShoppingBag size={20} />
                 {cartCount > 0 && (
-                  <span className={`absolute -top-2 -right-2 text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center ${isScrolled ? 'bg-black text-white' : 'bg-white text-black'}`}>
+                  <span className={`absolute -top-2 -right-2 text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center ${isTransparent ? 'bg-white text-black' : 'bg-black text-white'}`}>
                     {cartCount}
                   </span>
                 )}

@@ -142,64 +142,64 @@ export default function AdminDashboard({ orders, products, users, leads = [] }: 
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center shrink-0">
-            <DollarSign size={24} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-14 h-14 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center shrink-0">
+            <DollarSign size={28} />
           </div>
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-1">Ingresos</p>
-            <p className="text-2xl font-bold">${totalRevenue.toFixed(2)}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Ingresos</p>
+            <p className="text-3xl font-bold">${totalRevenue.toFixed(2)}</p>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0">
-            <ShoppingCart size={24} />
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
+            <ShoppingCart size={28} />
           </div>
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-1">Pedidos</p>
-            <p className="text-2xl font-bold">{totalOrders}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Pedidos</p>
+            <p className="text-3xl font-bold">{totalOrders}</p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center shrink-0">
-            <TrendingUp size={24} />
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center shrink-0">
+            <TrendingUp size={28} />
           </div>
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-1">Ticket Promedio</p>
-            <p className="text-2xl font-bold">${averageOrderValue.toFixed(2)}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Ticket Promedio</p>
+            <p className="text-3xl font-bold">${averageOrderValue.toFixed(2)}</p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center shrink-0">
-            <Users size={24} />
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-14 h-14 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center shrink-0">
+            <Users size={28} />
           </div>
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-1">Usuarios</p>
-            <p className="text-2xl font-bold">{users.length}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Usuarios</p>
+            <p className="text-3xl font-bold">{users.length}</p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center shrink-0">
-            <Mail size={24} />
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shrink-0">
+            <Mail size={28} />
           </div>
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-1">Leads</p>
-            <p className="text-2xl font-bold">{leads.length}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Leads</p>
+            <p className="text-3xl font-bold">{leads.length}</p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
-            <UserCheck size={24} />
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0">
+            <UserCheck size={28} />
           </div>
           <div>
-            <p className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-1">Conversión</p>
-            <p className="text-2xl font-bold">{conversionRate.toFixed(1)}%</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-1">Conversión</p>
+            <p className="text-3xl font-bold">{conversionRate.toFixed(1)}%</p>
           </div>
         </div>
       </div>

@@ -41,6 +41,11 @@ export default function ProductDetail() {
   // Find selected variant
   const selectedVariant = product?.variants?.find(v => v.color === selectedColor && v.size === selectedSize);
 
+  // Calculate current available stock based on selection or product total
+  const currentStock = product?.variants && product.variants.length > 0
+    ? (selectedVariant?.stock || 0)
+    : (product?.stock || 0);
+
   // Scroll to top when product changes
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -68,6 +73,13 @@ export default function ProductDetail() {
       return () => clearTimeout(timer);
     }
   }, [notification]);
+
+  // Reset quantity if it exceeds new stock limit when variant changes
+  useEffect(() => {
+    if (quantity > currentStock && currentStock > 0) {
+      setQuantity(currentStock);
+    }
+  }, [currentStock]);
 
   // Handle Recently Viewed
   useEffect(() => {
@@ -142,18 +154,6 @@ export default function ProductDetail() {
   const toggleSection = (section: string) => {
     setOpenSection(openSection === section ? null : section);
   };
-
-  // Calculate current available stock based on selection or product total
-  const currentStock = product.variants && product.variants.length > 0
-    ? (selectedVariant?.stock || 0)
-    : (product.stock || 0);
-
-  // Reset quantity if it exceeds new stock limit when variant changes
-  useEffect(() => {
-    if (quantity > currentStock && currentStock > 0) {
-      setQuantity(currentStock);
-    }
-  }, [currentStock]);
 
   const handleIncreaseQuantity = () => {
     if (quantity < currentStock) {
