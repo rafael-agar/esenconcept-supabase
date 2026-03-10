@@ -5,21 +5,21 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const slides = [
   {
     id: 1,
-    image: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner2-calmaset.webp',
+    image: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner%203%20top%20aura.webp',
     subtitle: 'Nueva Colección',
     title: 'Atrévete a ser tú misma',
     buttonText: 'Comprar Ahora'
   },
   {
     id: 2,
-    image: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner%203%20top%20aura.webp',
+    image: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner%204%20set%20raiz.webp',
     subtitle: 'Otoño / Invierno 2024',
     title: 'Elegancia Atemporal',
     buttonText: 'Ver Colección'
   },
   {
     id: 3,
-    image: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner%204%20set%20raiz.webp',
+    image: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner2-calmaset.webp',
     subtitle: 'Edición Limitada',
     title: 'Estilo y Confort',
     buttonText: 'Descubrir Más'

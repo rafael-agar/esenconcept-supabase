@@ -18,6 +18,17 @@ export default function Navbar() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   useEffect(() => {
     if (isSearchOpen && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -42,14 +53,14 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/80 backdrop-blur-md border-b border-gray-100' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Mobile Menu Button */}
             <div className="flex items-center md:hidden flex-shrink-0">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-gray-500 hover:text-black focus:outline-none"
+                className={`${isScrolled ? 'text-gray-500 hover:text-black' : 'text-white/80 hover:text-white'} focus:outline-none transition-colors`}
               >
                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -59,9 +70,9 @@ export default function Navbar() {
             <div className="flex-1 flex items-center justify-center md:justify-start md:flex-none md:w-auto">
               <Link to="/" className="text-2xl font-serif font-bold tracking-wider">
                 <img 
-                  src="https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/ESEN%20logo%20negro.png" 
+                  src={isScrolled ? "https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/ESEN%20logo%20negro.png" : "https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/ESEN%20logo%20blanco.png"} 
                   alt="ESEN CONCEPT" 
-                  className="h-8 w-auto object-contain"
+                  className="h-8 w-auto object-contain transition-opacity duration-300"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     e.currentTarget.nextElementSibling?.classList.remove('hidden');
@@ -72,8 +83,8 @@ export default function Navbar() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex space-x-8 items-center">
-              <Link to="/" className="text-sm font-medium text-gray-700 hover:text-black transition-colors uppercase tracking-wide">Inicio</Link>
-              <Link to="/shop" className="text-sm font-medium text-gray-700 hover:text-black transition-colors uppercase tracking-wide">Tienda</Link>
+              <Link to="/" className={`text-sm font-medium transition-colors uppercase tracking-wide ${isScrolled ? 'text-gray-700 hover:text-black' : 'text-white/80 hover:text-white'}`}>Inicio</Link>
+              <Link to="/shop" className={`text-sm font-medium transition-colors uppercase tracking-wide ${isScrolled ? 'text-gray-700 hover:text-black' : 'text-white/80 hover:text-white'}`}>Tienda</Link>
               
               {/* Collections Dropdown */}
               <div 
@@ -82,7 +93,7 @@ export default function Navbar() {
                 onMouseLeave={() => setIsCollectionsOpen(false)}
               >
                 <button 
-                  className="flex items-center text-sm font-medium text-gray-700 hover:text-black transition-colors uppercase tracking-wide focus:outline-none"
+                  className={`flex items-center text-sm font-medium transition-colors uppercase tracking-wide focus:outline-none ${isScrolled ? 'text-gray-700 hover:text-black' : 'text-white/80 hover:text-white'}`}
                 >
                   Cápsulas <ChevronDown size={14} className="ml-1" />
                 </button>
@@ -110,14 +121,14 @@ export default function Navbar() {
                 </AnimatePresence>
               </div>
 
-              <Link to="/about" className="text-sm font-medium text-gray-700 hover:text-black transition-colors uppercase tracking-wide">Sobre Mí</Link>
+              <Link to="/about" className={`text-sm font-medium transition-colors uppercase tracking-wide ${isScrolled ? 'text-gray-700 hover:text-black' : 'text-white/80 hover:text-white'}`}>Sobre Mí</Link>
             </div>
 
             {/* Icons */}
             <div className="flex items-center space-x-4 flex-shrink-0">
               <button 
                 onClick={() => setIsSearchOpen(true)}
-                className="text-gray-500 hover:text-black transition-colors"
+                className={`transition-colors ${isScrolled ? 'text-gray-500 hover:text-black' : 'text-white/80 hover:text-white'}`}
               >
                 <Search size={20} />
               </button>
@@ -130,7 +141,7 @@ export default function Navbar() {
               >
                 <Link 
                   to={user ? "/profile" : "/login"}
-                  className="text-gray-500 hover:text-black transition-colors block py-2"
+                  className={`transition-colors block py-2 ${isScrolled ? 'text-gray-500 hover:text-black' : 'text-white/80 hover:text-white'}`}
                 >
                   <User size={20} />
                 </Link>
@@ -187,11 +198,11 @@ export default function Navbar() {
 
               <button
                 onClick={() => setIsCartOpen(true)}
-                className="text-gray-500 hover:text-black transition-colors relative"
+                className={`transition-colors relative ${isScrolled ? 'text-gray-500 hover:text-black' : 'text-white/80 hover:text-white'}`}
               >
                 <ShoppingBag size={20} />
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  <span className={`absolute -top-2 -right-2 text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center ${isScrolled ? 'bg-black text-white' : 'bg-white text-black'}`}>
                     {cartCount}
                   </span>
                 )}
