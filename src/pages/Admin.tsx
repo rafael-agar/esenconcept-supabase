@@ -1900,9 +1900,11 @@ export default function Admin() {
                           <span className="font-bold">{item.quantity}x</span> {item.name}
                           {item.color || item.size ? (
                             <span className="text-gray-400 block italic">
-                              ({item.color || 'N/A'} / {item.size || 'N/A'})
+                              ({[item.color, item.size].filter(Boolean).join(' / ')})
                             </span>
-                          ) : null}
+                          ) : (
+                            <span className="text-gray-300 block italic">(Sin variante)</span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -2773,7 +2775,7 @@ export default function Admin() {
                             <tr key={index}>
                               <td className="p-3 font-medium">{item.name}</td>
                               <td className="p-3 text-gray-500">
-                                {item.color && item.size ? `${item.color} / ${item.size}` : '-'}
+                                {[item.color, item.size].filter(Boolean).join(' / ') || '-'}
                               </td>
                               <td className="p-3 text-center">{item.quantity}</td>
                               <td className="p-3 text-right">${Number(item.price).toFixed(2)}</td>

@@ -92,7 +92,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             price: Number(oi.unit_price),
             image: oi.products?.image_url,
             quantity: oi.quantity,
-            // Note: variants are not fully reconstructed here, simplified for history
+            color: oi.color,
+            size: oi.size
           })),
           paymentMethod: o.payment_method,
           isGift: o.is_gift || false,
@@ -388,7 +389,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           order_id: order.id,
           product_id: item.id,
           quantity: item.quantity,
-          unit_price: item.isSale && item.salePrice ? item.salePrice : item.price
+          unit_price: item.isSale && item.salePrice ? item.salePrice : item.price,
+          color: item.selectedColor || null,
+          size: item.selectedSize || null
         }));
 
         const { error: itemsError } = await supabase

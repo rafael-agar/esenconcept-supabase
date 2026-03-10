@@ -223,8 +223,8 @@ export default function Profile() {
                       <h4 className="text-sm font-medium">{item.name}</h4>
                       <p className="text-xs text-gray-500">
                         {item.quantity} x ${item.price.toFixed(2)}
-                        {item.selectedColor && ` | ${item.selectedColor}`}
-                        {item.selectedSize && ` | ${item.selectedSize}`}
+                        {item.color && ` | ${item.color}`}
+                        {item.size && ` | ${item.size}`}
                       </p>
                     </div>
                   </div>
