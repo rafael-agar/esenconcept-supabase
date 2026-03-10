@@ -13,19 +13,19 @@ export default function Home() {
       <Hero />
 
       {/* Categories Section */}
-      <section className="py-20 px-4 max-w-7xl mx-auto">
-        <div className="text-center mb-12">
+      <section className="py-20 w-full overflow-hidden">
+        <div className="text-center mb-12 px-4">
           <h2 className="text-3xl font-serif font-bold mb-4">Categorías</h2>
           <div className="w-12 h-0.5 bg-black mx-auto"></div>
         </div>
         
-        <div className="flex overflow-x-auto gap-8 pb-8 snap-x snap-mandatory scrollbar-hide">
+        <div className="flex overflow-x-auto pb-8 snap-x snap-mandatory scrollbar-hide w-full">
           {isLoading ? (
             // Skeleton for categories
-            Array.from({ length: 4 }).map((_, index) => (
+            Array.from({ length: 3 }).map((_, index) => (
               <div 
                 key={index}
-                className="relative overflow-hidden h-[400px] min-w-[300px] flex-shrink-0 snap-center bg-gray-200 animate-pulse"
+                className="relative overflow-hidden h-[400px] w-full md:w-1/3 flex-shrink-0 snap-center bg-gray-200 animate-pulse border-r border-white last:border-0"
               >
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="h-8 w-32 bg-gray-300 rounded"></div>
@@ -40,7 +40,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
-                className="relative group cursor-pointer overflow-hidden h-[400px] min-w-[300px] flex-shrink-0 snap-center"
+                className="relative group cursor-pointer overflow-hidden h-[400px] w-full md:w-1/3 flex-shrink-0 snap-center border-r border-white last:border-0"
               >
                 <Link to={`/shop?category=${encodeURIComponent(category.name)}`} className="block w-full h-full">
                   <img 
