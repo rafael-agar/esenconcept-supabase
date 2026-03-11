@@ -21,6 +21,7 @@ interface OrderItem {
 interface Order {
   id: string;
   total: number;
+  shippingCost: number;
   items: OrderItem[];
   shippingAddress: string;
   paymentMethod: string;
@@ -150,6 +151,10 @@ const generateEmailHtml = (order: Order, isCustomer: boolean, type: string = 'ne
             ${itemsHtml}
           </tbody>
         </table>
+
+        <div style="text-align: right; margin-top: 10px;">
+          <p><strong>Envío:</strong> ${order.shippingCost === 0 ? 'Gratis' : `$${order.shippingCost.toFixed(2)}`}</p>
+        </div>
 
         <div class="total">
           Total: $${order.total.toFixed(2)}

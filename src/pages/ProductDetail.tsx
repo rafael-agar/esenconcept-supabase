@@ -46,9 +46,8 @@ export default function ProductDetail() {
     ? (selectedVariant?.stock || 0)
     : (product?.stock || 0);
 
-  // Scroll to top when product changes
+  // Update image and selections when product changes
   useEffect(() => {
-    window.scrollTo(0, 0);
     if (product) {
       setSelectedImage(product.image);
       // Set default selections if variants exist

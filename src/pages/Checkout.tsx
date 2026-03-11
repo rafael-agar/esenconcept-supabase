@@ -186,6 +186,7 @@ export default function Checkout() {
               // Explicitly add snake_case properties to support the OLD version of the Edge Function
               // in case the deployment didn't go through correctly.
               total_amount: finalTotal, 
+              shipping_cost: shippingCost,
               shipping_address: `${formData.address}, ${formData.city}, ${formData.postalCode}`,
               payment_method: paymentMethod,
               is_gift: formData.isGift,
@@ -201,6 +202,7 @@ export default function Checkout() {
               
               // Ensure camelCase properties are also present and correct
               total: finalTotal,
+              shippingCost: shippingCost,
               
               user_email: formData.email,
               user_name: `${formData.firstName} ${formData.lastName}`,

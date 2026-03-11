@@ -2689,7 +2689,6 @@ export default function Admin() {
                       <p><span className="font-medium text-gray-500">Nombre:</span> {viewingOrder.customer?.full_name}</p>
                       <p><span className="font-medium text-gray-500">Email:</span> {viewingOrder.customer?.email}</p>
                       <p><span className="font-medium text-gray-500">Teléfono:</span> {viewingOrder.customer?.phone || 'No especificado'}</p>
-                      <p><span className="font-medium text-gray-500">Cédula / ID:</span> {viewingOrder.customer?.document_id || 'No especificado'}</p>
                     </div>
                   </div>
 
@@ -2701,7 +2700,6 @@ export default function Admin() {
                     <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
                       <p><span className="font-medium text-gray-500">Dirección:</span> {viewingOrder.shipping_address}</p>
                       <p><span className="font-medium text-gray-500">Ciudad:</span> {viewingOrder.city || 'No especificada'}</p>
-                      <p><span className="font-medium text-gray-500">Estado:</span> {viewingOrder.state || 'No especificado'}</p>
                       <p><span className="font-medium text-gray-500">Código Postal:</span> {viewingOrder.zip_code || 'No especificado'}</p>
                       {viewingOrder.shipping_method && (
                         <p><span className="font-medium text-gray-500">Método de Envío:</span> {viewingOrder.shipping_method}</p>
@@ -2744,7 +2742,6 @@ export default function Admin() {
                         <p><span className="font-medium text-gray-500">Referencia:</span> {viewingOrder.paymentDetails.referenceNumber}</p>
                         <p><span className="font-medium text-gray-500">Depositante:</span> {viewingOrder.paymentDetails.depositorName}</p>
                         <p><span className="font-medium text-gray-500">C.I. Depositante:</span> {viewingOrder.paymentDetails.depositorId}</p>
-                        <p><span className="font-medium text-gray-500">Fecha del Pago:</span> {viewingOrder.paymentDetails.date}</p>
                         {viewingOrder.paymentDetails.amount && (
                           <p><span className="font-medium text-gray-500">Monto Reportado:</span> {viewingOrder.paymentDetails.amount}</p>
                         )}
