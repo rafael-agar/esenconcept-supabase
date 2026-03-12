@@ -217,6 +217,7 @@ export default function Admin() {
   const [imagePickerMultiple, setImagePickerMultiple] = useState(false);
   const [imagePickerMultipleCallback, setImagePickerMultipleCallback] = useState<((urls: string[]) => void) | null>(null);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[]>([]);
+  const [imagePickerMaxSelection, setImagePickerMaxSelection] = useState<number>(5);
 
   const fetchGalleryImages = async () => {
     setGalleryLoading(true);
@@ -271,19 +272,26 @@ export default function Admin() {
     }
   };
 
-  const handleGalleryDelete = async (name: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta imagen? Si está en uso por algún producto, dejará de verse.')) return;
+  const handleGalleryDelete = async (name: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     
-    try {
-      const { error } = await supabase.storage.from('product-images').remove([name]);
-      if (error) throw error;
-      
-      showToast('Imagen eliminada', 'success');
-      fetchGalleryImages();
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      showToast('Error al eliminar imagen', 'error');
-    }
+    openConfirmModal(
+      'Eliminar Imagen',
+      '¿Estás seguro de eliminar esta imagen? Si está en uso por algún producto, dejará de verse.',
+      async () => {
+        try {
+          const { error } = await supabase.storage.from('product-images').remove([name]);
+          if (error) throw error;
+          
+          showToast('Imagen eliminada', 'success');
+          fetchGalleryImages();
+        } catch (error) {
+          console.error('Error deleting image:', error);
+          showToast('Error al eliminar imagen', 'error');
+        }
+      },
+      true
+    );
   };
 
   const openImagePicker = (callback: (url: string) => void) => {
@@ -293,10 +301,11 @@ export default function Admin() {
     if (galleryImages.length === 0) fetchGalleryImages();
   };
 
-  const openImagePickerMultiple = (callback: (urls: string[]) => void) => {
+  const openImagePickerMultiple = (callback: (urls: string[]) => void, initialSelection: string[] = [], maxSelection: number = 5) => {
     setImagePickerMultiple(true);
     setImagePickerMultipleCallback(() => callback);
-    setSelectedGalleryImages([]);
+    setSelectedGalleryImages(initialSelection);
+    setImagePickerMaxSelection(maxSelection);
     setIsImagePickerOpen(true);
     if (galleryImages.length === 0) fetchGalleryImages();
   };
@@ -792,7 +801,7 @@ export default function Admin() {
               <img src={img.url} alt={img.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                 <button 
-                  onClick={() => handleGalleryDelete(img.name)}
+                  onClick={(e) => handleGalleryDelete(img.name, e)}
                   className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
                   title="Eliminar imagen"
                 >
@@ -1572,7 +1581,7 @@ export default function Admin() {
                     }
                     setNewProductAdditionalImageUrls(urls);
                     setNewProductAdditionalImages([]);
-                  })}
+                  }, newProductAdditionalImageUrls, 5)}
                   className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium flex items-center gap-2"
                 >
                   <ImageIcon size={16} /> Galería
@@ -1866,7 +1875,7 @@ export default function Admin() {
                                   }
                                   setEditAdditionalImageUrls(urls);
                                   setEditAdditionalImages([]);
-                                })}
+                                }, editAdditionalImageUrls.length > 0 ? editAdditionalImageUrls : editExistingImages, 5)}
                                 className="bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors text-[10px] font-medium flex items-center gap-1"
                               >
                                 <ImageIcon size={12} /> Galería
@@ -3022,6 +3031,10 @@ export default function Admin() {
                             if (isSelected) {
                               setSelectedGalleryImages(prev => prev.filter(url => url !== img.url));
                             } else {
+                              if (selectedGalleryImages.length >= imagePickerMaxSelection) {
+                                showToast(`Máximo ${imagePickerMaxSelection} imágenes permitidas`, 'error');
+                                return;
+                              }
                               setSelectedGalleryImages(prev => [...prev, img.url]);
                             }
                           } else {
@@ -3032,6 +3045,15 @@ export default function Admin() {
                         className={`relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${isSelected ? 'border-black' : 'border-transparent hover:border-gray-300'}`}
                       >
                         <img src={img.url} alt={img.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        
+                        <button 
+                          onClick={(e) => handleGalleryDelete(img.name, e)}
+                          className="absolute top-2 left-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-red-600"
+                          title="Eliminar de la galería"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+
                         {isSelected && (
                           <div className="absolute top-2 right-2 bg-black text-white rounded-full p-1">
                             <CheckCircle size={16} />
