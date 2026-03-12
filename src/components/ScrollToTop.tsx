@@ -21,14 +21,10 @@ export default function ScrollToTop() {
       currentParams.get('category') !== prevParams.get('category') ||
       currentParams.get('search') !== prevParams.get('search')
     ) {
-      // Temporarily disable smooth scrolling to jump instantly
-      document.documentElement.style.scrollBehavior = 'auto';
-      window.scrollTo(0, 0);
-      
-      // Restore smooth scrolling after a tiny delay
+      // Use setTimeout to ensure this runs after React has updated the DOM
       setTimeout(() => {
-        document.documentElement.style.scrollBehavior = '';
-      }, 10);
+        window.scrollTo(0, 0);
+      }, 0);
     }
     
     prevPathname.current = pathname;

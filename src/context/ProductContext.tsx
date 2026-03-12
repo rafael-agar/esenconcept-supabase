@@ -8,8 +8,8 @@ interface ProductContextType {
   sizes: Size[];
   isLoading: boolean;
   refreshProducts: () => Promise<void>;
-  updateProduct: (updatedProduct: Product, imageFile?: File, additionalImages?: File[]) => Promise<void>;
-  addProduct: (product: Omit<Product, 'id'>, imageFile?: File, additionalImages?: File[]) => Promise<void>;
+  updateProduct: (updatedProduct: Product, imageFile?: File, additionalImages?: File[], additionalImageUrls?: string[]) => Promise<void>;
+  addProduct: (product: Omit<Product, 'id'>, imageFile?: File, additionalImages?: File[], additionalImageUrls?: string[]) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   uploadImage: (file: File) => Promise<string | null>;
   addSize: (name: string, orderIndex: number) => Promise<void>;
@@ -121,7 +121,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
       console.log(`Fetched: ${prodsData?.length} products, ${variantsData?.length} variants, ${imagesData?.length} images, ${bundleData?.length || 0} bundle items`);
 
-      const formattedProducts = (prodsData || []).map(p => {
+      let formattedProducts = (prodsData || []).map(p => {
         const productVariants = (variantsData || []).filter(v => v.product_id === p.id);
         const productImages = (imagesData || []).filter(img => img.product_id === p.id);
         const productBundleItems = (bundleData || []).filter(b => b.parent_product_id === p.id);
@@ -176,6 +176,62 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         };
       });
 
+      // Second pass: Calculate dynamic stock for bundles based on their components
+      formattedProducts = formattedProducts.map(p => {
+        if (p.isBundle && p.bundleItems && p.bundleItems.length > 0) {
+          if (p.variants && p.variants.length > 0) {
+            let totalBundleStock = 0;
+            p.variants.forEach(bv => {
+              let minStock = Infinity;
+              p.bundleItems!.forEach(bi => {
+                const componentProduct = formattedProducts.find(cp => cp.id === bi.productId);
+                if (componentProduct) {
+                  let componentStock = 0;
+                  if (bi.variantId) {
+                    const cv = componentProduct.variants?.find(v => v.id === bi.variantId);
+                    componentStock = cv ? (cv.stock || 0) : 0;
+                  } else {
+                    const cv = componentProduct.variants?.find(v => v.color === bv.color && v.size === bv.size);
+                    componentStock = cv ? (cv.stock || 0) : 0;
+                  }
+                  const availableForBundle = Math.floor(componentStock / bi.quantity);
+                  if (availableForBundle < minStock) {
+                    minStock = availableForBundle;
+                  }
+                } else {
+                  minStock = 0;
+                }
+              });
+              bv.stock = minStock === Infinity ? 0 : minStock;
+              totalBundleStock += bv.stock;
+            });
+            p.stock = totalBundleStock;
+          } else {
+            let minStock = Infinity;
+            p.bundleItems.forEach(bi => {
+              const componentProduct = formattedProducts.find(cp => cp.id === bi.productId);
+              if (componentProduct) {
+                let componentStock = 0;
+                if (bi.variantId) {
+                  const cv = componentProduct.variants?.find(v => v.id === bi.variantId);
+                  componentStock = cv ? (cv.stock || 0) : 0;
+                } else {
+                  componentStock = componentProduct.stock || 0;
+                }
+                const availableForBundle = Math.floor(componentStock / bi.quantity);
+                if (availableForBundle < minStock) {
+                  minStock = availableForBundle;
+                }
+              } else {
+                minStock = 0;
+              }
+            });
+            p.stock = minStock === Infinity ? 0 : minStock;
+          }
+        }
+        return p;
+      });
+
       setProducts(formattedProducts);
     } catch (error) {
       console.error('Error in robust fetchData:', error);
@@ -211,7 +267,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addProduct = async (product: Omit<Product, 'id'>, imageFile?: File, additionalImages?: File[]) => {
+  const addProduct = async (product: Omit<Product, 'id'>, imageFile?: File, additionalImages?: File[], additionalImageUrls?: string[]) => {
     try {
       let imageUrl = product.image;
 
@@ -269,24 +325,31 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // 3. Insert additional images if any
+      let allAdditionalUrls: string[] = [];
+      
+      if (additionalImageUrls && additionalImageUrls.length > 0) {
+        allAdditionalUrls = [...additionalImageUrls];
+      }
+
       if (additionalImages && additionalImages.length > 0) {
         const uploadPromises = additionalImages.map(file => uploadImage(file));
         const uploadedUrls = await Promise.all(uploadPromises);
         const validUrls = uploadedUrls.filter(url => url !== null) as string[];
+        allAdditionalUrls = [...allAdditionalUrls, ...validUrls];
+      }
 
-        if (validUrls.length > 0) {
-          const imagesToInsert = validUrls.map((url, index) => ({
-            product_id: productData.id,
-            image_url: url,
-            order_index: index
-          }));
+      if (allAdditionalUrls.length > 0) {
+        const imagesToInsert = allAdditionalUrls.map((url, index) => ({
+          product_id: productData.id,
+          image_url: url,
+          order_index: index
+        }));
 
-          const { error: imagesError } = await supabase
-            .from('product_images')
-            .insert(imagesToInsert);
+        const { error: imagesError } = await supabase
+          .from('product_images')
+          .insert(imagesToInsert);
 
-          if (imagesError) throw imagesError;
-        }
+        if (imagesError) throw imagesError;
       }
 
       // 3. Insert variants if any
@@ -316,7 +379,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateProduct = async (updatedProduct: Product, imageFile?: File, additionalImages?: File[]) => {
+  const updateProduct = async (updatedProduct: Product, imageFile?: File, additionalImages?: File[], additionalImageUrls?: string[]) => {
     try {
       let imageUrl = updatedProduct.image;
 
@@ -379,33 +442,40 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // 3. Handle additional images
-      // If additionalImages is provided, we replace all additional images
-      if (additionalImages) {
+      // If additionalImages or additionalImageUrls is provided, we replace all additional images
+      if (additionalImages || additionalImageUrls) {
         // Delete existing additional images
         await supabase
           .from('product_images')
           .delete()
           .eq('product_id', updatedProduct.id);
 
+        let allAdditionalUrls: string[] = [];
+        
+        if (additionalImageUrls && additionalImageUrls.length > 0) {
+          allAdditionalUrls = [...additionalImageUrls];
+        }
+
         // Upload and insert new ones
-        if (additionalImages.length > 0) {
+        if (additionalImages && additionalImages.length > 0) {
           const uploadPromises = additionalImages.map(file => uploadImage(file));
           const uploadedUrls = await Promise.all(uploadPromises);
           const validUrls = uploadedUrls.filter(url => url !== null) as string[];
+          allAdditionalUrls = [...allAdditionalUrls, ...validUrls];
+        }
 
-          if (validUrls.length > 0) {
-            const imagesToInsert = validUrls.map((url, index) => ({
-              product_id: updatedProduct.id,
-              image_url: url,
-              order_index: index
-            }));
+        if (allAdditionalUrls.length > 0) {
+          const imagesToInsert = allAdditionalUrls.map((url, index) => ({
+            product_id: updatedProduct.id,
+            image_url: url,
+            order_index: index
+          }));
 
-            const { error: imagesError } = await supabase
-              .from('product_images')
-              .insert(imagesToInsert);
+          const { error: imagesError } = await supabase
+            .from('product_images')
+            .insert(imagesToInsert);
 
-            if (imagesError) throw imagesError;
-          }
+          if (imagesError) throw imagesError;
         }
       } else if (updatedProduct.images) {
         // If no new files but images array is provided, we might want to sync order/removals

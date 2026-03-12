@@ -99,15 +99,15 @@ export default function Home() {
       <section className="relative py-32 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-gray-900">
           <img 
-            src="https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=2070&auto=format&fit=crop" 
+            src="https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/sni9cj1pje_1773279135411.webp" 
             alt="Promo Background" 
-            className="w-full h-full object-cover opacity-40"
+            className="w-full h-full object-cover object-left md:object-center opacity-40"
           />
         </div>
-        <div className="relative max-w-7xl mx-auto text-center text-white">
+        <div className="relative max-w-7xl mx-auto text-right text-white flex flex-col items-end">
           <span className="text-sm font-bold uppercase tracking-widest mb-4 block">Oferta Especial</span>
           <h2 className="text-4xl md:text-6xl font-serif font-bold mb-8">Rebajas de Invierno</h2>
-          <p className="text-xl mb-10 max-w-2xl mx-auto font-light">
+          <p className="text-xl mb-10 max-w-2xl font-light">
             Hasta un 50% de descuento en artículos seleccionados. Renueva tu guardarropa con estilo.
           </p>
           <Link 

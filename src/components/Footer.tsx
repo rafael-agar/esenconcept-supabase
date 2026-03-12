@@ -88,6 +88,7 @@ export default function Footer() {
                   <Link 
                     to={`/shop?category=${encodeURIComponent(cat.name)}`} 
                     className="hover:text-white transition-colors"
+                    onClick={() => window.scrollTo(0, 0)}
                   >
                     {cat.name}
                   </Link>
@@ -103,9 +104,9 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-bold uppercase tracking-widest mb-6">Ayuda</h4>
             <ul className="space-y-3 text-sm text-gray-400">
-              <li><Link to="/shipping-info" className="hover:text-white transition-colors">Información de Envíos</Link></li>
-              <li><Link to="/returns-and-warranty" className="hover:text-white transition-colors">Cambios y Garantías</Link></li>
-              <li><Link to="/faq" className="hover:text-white transition-colors">Preguntas y Respuestas</Link></li>
+              <li><Link to="/shipping-info" className="hover:text-white transition-colors" onClick={() => window.scrollTo(0, 0)}>Información de Envíos</Link></li>
+              <li><Link to="/returns-and-warranty" className="hover:text-white transition-colors" onClick={() => window.scrollTo(0, 0)}>Cambios y Garantías</Link></li>
+              <li><Link to="/faq" className="hover:text-white transition-colors" onClick={() => window.scrollTo(0, 0)}>Preguntas y Respuestas</Link></li>
               <li>
                 <button 
                   onClick={() => setIsContactModalOpen(true)}
@@ -187,9 +188,9 @@ export default function Footer() {
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500">
           <p>&copy; 2024 Esen Concept. Todos los derechos reservados.</p>
           <div className="flex space-x-4 mt-4 md:mt-0">
-            <Link to="/privacy-policy" className="hover:text-white transition-colors">Privacidad</Link>
-            <Link to="/shipping-info" className="hover:text-white transition-colors">Envíos</Link>
-            <Link to="/returns-and-warranty" className="hover:text-white transition-colors">Cambios y Garantías</Link>
+            <Link to="/privacy-policy" className="hover:text-white transition-colors" onClick={() => window.scrollTo(0, 0)}>Privacidad</Link>
+            <Link to="/shipping-info" className="hover:text-white transition-colors" onClick={() => window.scrollTo(0, 0)}>Envíos</Link>
+            <Link to="/returns-and-warranty" className="hover:text-white transition-colors" onClick={() => window.scrollTo(0, 0)}>Cambios y Garantías</Link>
           </div>
         </div>
       </div>

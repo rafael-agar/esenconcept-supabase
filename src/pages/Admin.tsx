@@ -24,7 +24,7 @@ export default function Admin() {
   } = useCart();
   const { products, categories, sizes, updateProduct, addProduct, deleteProduct, addSize, updateSize, deleteSize, addCategory, updateCategory, deleteCategory, isLoading: productsLoading, processReturn } = useProducts();
   
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'users' | 'settings' | 'sizes' | 'categories' | 'leads' | 'returns'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'users' | 'settings' | 'sizes' | 'categories' | 'leads' | 'returns' | 'gallery'>('dashboard');
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [viewingOrder, setViewingOrder] = useState<any | null>(null);
@@ -166,7 +166,9 @@ export default function Admin() {
   const [editIsSale, setEditIsSale] = useState(false);
   const [editSalePrice, setEditSalePrice] = useState('');
   const [editProductImage, setEditProductImage] = useState<File | null>(null);
+  const [editImageUrl, setEditImageUrl] = useState<string>('');
   const [editAdditionalImages, setEditAdditionalImages] = useState<File[]>([]);
+  const [editAdditionalImageUrls, setEditAdditionalImageUrls] = useState<string[]>([]);
   const [editExistingImages, setEditExistingImages] = useState<string[]>([]);
   const [editVariants, setEditVariants] = useState<{ id?: string, color: string, colorCode: string, size: string, stock: number }[]>([]);
   const [editIsBundle, setEditIsBundle] = useState(false);
@@ -199,21 +201,117 @@ export default function Admin() {
   const [newProductIsSale, setNewProductIsSale] = useState(false);
   const [newProductSalePrice, setNewProductSalePrice] = useState('');
   const [newProductImage, setNewProductImage] = useState<File | null>(null);
+  const [newProductImageUrl, setNewProductImageUrl] = useState<string>('');
   const [newProductAdditionalImages, setNewProductAdditionalImages] = useState<File[]>([]);
+  const [newProductAdditionalImageUrls, setNewProductAdditionalImageUrls] = useState<string[]>([]);
   const [newProductVariants, setNewProductVariants] = useState<{ color: string, colorCode: string, size: string, stock: number }[]>([]);
   const [newProductIsBundle, setNewProductIsBundle] = useState(false);
   const [newProductBundleItems, setNewProductBundleItems] = useState<{ productId: string, variantId?: string, quantity: number }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Gallery State
+  const [galleryImages, setGalleryImages] = useState<{ name: string, url: string, created_at: string }[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
+  const [imagePickerCallback, setImagePickerCallback] = useState<((url: string) => void) | null>(null);
+  const [imagePickerMultiple, setImagePickerMultiple] = useState(false);
+  const [imagePickerMultipleCallback, setImagePickerMultipleCallback] = useState<((urls: string[]) => void) | null>(null);
+  const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[]>([]);
+
+  const fetchGalleryImages = async () => {
+    setGalleryLoading(true);
+    try {
+      const { data, error } = await supabase.storage.from('product-images').list('', {
+        limit: 100,
+        offset: 0,
+        sortBy: { column: 'created_at', order: 'desc' },
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        const imagesWithUrls = data.map(file => {
+          const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(file.name);
+          return {
+            name: file.name,
+            url: urlData.publicUrl,
+            created_at: file.created_at
+          };
+        }).filter(img => img.name !== '.emptyFolderPlaceholder');
+        setGalleryImages(imagesWithUrls);
+      }
+    } catch (error) {
+      console.error('Error fetching gallery images:', error);
+      showToast('Error al cargar la galería', 'error');
+    } finally {
+      setGalleryLoading(false);
+    }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    setGalleryLoading(true);
+    try {
+      const files = Array.from(e.target.files) as File[];
+      for (const file of files) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        
+        const { error } = await supabase.storage.from('product-images').upload(fileName, file);
+        if (error) throw error;
+      }
+      showToast('Imágenes subidas correctamente', 'success');
+      fetchGalleryImages();
+    } catch (error) {
+      console.error('Error uploading to gallery:', error);
+      showToast('Error al subir imágenes', 'error');
+    } finally {
+      setGalleryLoading(false);
+    }
+  };
+
+  const handleGalleryDelete = async (name: string) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta imagen? Si está en uso por algún producto, dejará de verse.')) return;
+    
+    try {
+      const { error } = await supabase.storage.from('product-images').remove([name]);
+      if (error) throw error;
+      
+      showToast('Imagen eliminada', 'success');
+      fetchGalleryImages();
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      showToast('Error al eliminar imagen', 'error');
+    }
+  };
+
+  const openImagePicker = (callback: (url: string) => void) => {
+    setImagePickerMultiple(false);
+    setImagePickerCallback(() => callback);
+    setIsImagePickerOpen(true);
+    if (galleryImages.length === 0) fetchGalleryImages();
+  };
+
+  const openImagePickerMultiple = (callback: (urls: string[]) => void) => {
+    setImagePickerMultiple(true);
+    setImagePickerMultipleCallback(() => callback);
+    setSelectedGalleryImages([]);
+    setIsImagePickerOpen(true);
+    if (galleryImages.length === 0) fetchGalleryImages();
+  };
 
   // Category Management State
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryDescription, setNewCategoryDescription] = useState('');
   const [newCategoryImage, setNewCategoryImage] = useState<File | null>(null);
+  const [newCategoryImageUrl, setNewCategoryImageUrl] = useState<string>('');
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editCategoryName, setEditCategoryName] = useState('');
   const [editCategoryDescription, setEditCategoryDescription] = useState('');
   const [editCategoryImage, setEditCategoryImage] = useState<File | null>(null);
+  const [editCategoryImageUrl, setEditCategoryImageUrl] = useState<string>('');
 
   // Notification & Modal State
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; visible: boolean }>({
@@ -259,6 +357,51 @@ export default function Admin() {
     const updated = [...newProductVariants];
     updated[index] = { ...updated[index], [field]: value };
     setNewProductVariants(updated);
+  };
+
+  const generateVariantsFromBundle = (isEdit: boolean) => {
+    const bundleItems = isEdit ? editBundleItems : newProductBundleItems;
+    if (bundleItems.length === 0) {
+      showToast('Agrega productos al bundle primero', 'error');
+      return;
+    }
+
+    // Find all products in the bundle
+    const bundleProducts = bundleItems.map(item => products.find(p => p.id === item.productId)).filter(Boolean) as any[];
+    
+    if (bundleProducts.length === 0) return;
+
+    // We want to find the intersection of variants (color and size)
+    // First, get all variants of the first product
+    let commonVariants = bundleProducts[0].variants || [];
+
+    // Then, filter by variants that exist in ALL other products
+    for (let i = 1; i < bundleProducts.length; i++) {
+      const otherVariants = bundleProducts[i].variants || [];
+      commonVariants = commonVariants.filter(cv => 
+        otherVariants.some(ov => ov.color === cv.color && ov.size === cv.size)
+      );
+    }
+
+    // Now we have the common variants. We need to map them to the format expected by the state
+    const newVariants = commonVariants.map(cv => ({
+      color: cv.color,
+      colorCode: cv.colorCode,
+      size: cv.size,
+      stock: 0 // Stock will be calculated dynamically by ProductContext
+    }));
+
+    if (newVariants.length === 0) {
+      showToast('No se encontraron variantes comunes entre los productos', 'error');
+      return;
+    }
+
+    if (isEdit) {
+      setEditVariants(newVariants);
+    } else {
+      setNewProductVariants(newVariants);
+    }
+    showToast(`Se generaron ${newVariants.length} variantes automáticamente`, 'success');
   };
 
   const addBundleItemToNewProduct = () => {
@@ -576,12 +719,13 @@ export default function Admin() {
       await addCategory({
         name: newCategoryName,
         description: newCategoryDescription,
-        image: ''
+        image: newCategoryImageUrl
       }, newCategoryImage || undefined);
       setIsAddingCategory(false);
       setNewCategoryName('');
       setNewCategoryDescription('');
       setNewCategoryImage(null);
+      setNewCategoryImageUrl('');
       showToast('Categoría creada correctamente', 'success');
     } catch (error) {
       showToast('Error al crear categoría', 'error');
@@ -596,9 +740,11 @@ export default function Admin() {
       await updateCategory({
         ...category,
         name: editCategoryName,
-        description: editCategoryDescription
+        description: editCategoryDescription,
+        image: editCategoryImageUrl || category.image
       }, editCategoryImage || undefined);
       setEditingCategoryId(null);
+      setEditCategoryImageUrl('');
       showToast('Categoría actualizada correctamente', 'success');
     } catch (error) {
       showToast('Error al actualizar categoría', 'error');
@@ -612,7 +758,61 @@ export default function Admin() {
     setEditCategoryName(category.name);
     setEditCategoryDescription(category.description || '');
     setEditCategoryImage(null);
+    setEditCategoryImageUrl('');
   };
+
+  const renderGallery = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-serif font-bold">Galería de Imágenes</h2>
+        <div className="relative">
+          <input 
+            type="file" 
+            multiple 
+            accept="image/*" 
+            onChange={handleGalleryUpload}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            disabled={galleryLoading}
+          />
+          <button className="bg-black text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-800 transition-colors">
+            {galleryLoading ? <Spinner size="sm" /> : <Plus size={20} />}
+            Subir Imágenes
+          </button>
+        </div>
+      </div>
+
+      {galleryLoading && galleryImages.length === 0 ? (
+        <div className="flex justify-center items-center h-64">
+          <Spinner size="xl" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {galleryImages.map((img) => (
+            <div key={img.name} className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+              <img src={img.url} alt={img.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <button 
+                  onClick={() => handleGalleryDelete(img.name)}
+                  className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+                  title="Eliminar imagen"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-[10px] p-1 truncate">
+                {img.name}
+              </div>
+            </div>
+          ))}
+          {galleryImages.length === 0 && !galleryLoading && (
+            <div className="col-span-full text-center py-12 text-gray-500">
+              No hay imágenes en la galería.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   const renderCategories = () => (
     <div className="space-y-6">
@@ -643,12 +843,35 @@ export default function Admin() {
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Imagen</label>
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={(e) => setNewCategoryImage(e.target.files?.[0] || null)}
-                className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
-              />
+              <div className="flex items-center gap-2">
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    setNewCategoryImage(e.target.files?.[0] || null);
+                    setNewCategoryImageUrl('');
+                  }}
+                  className="flex-1 border border-gray-300 p-2 rounded focus:outline-none focus:border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
+                />
+                <span className="text-gray-400 text-sm">o</span>
+                <button 
+                  type="button"
+                  onClick={() => openImagePicker((url) => {
+                    setNewCategoryImageUrl(url);
+                    setNewCategoryImage(null);
+                  })}
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  <ImageIcon size={16} /> Galería
+                </button>
+              </div>
+              {newCategoryImageUrl && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img src={newCategoryImageUrl} alt="Preview" className="w-12 h-12 object-cover rounded border border-gray-200" referrerPolicy="no-referrer" />
+                  <span className="text-xs text-green-600 font-medium">Imagen seleccionada de la galería</span>
+                  <button type="button" onClick={() => setNewCategoryImageUrl('')} className="text-red-500 hover:text-red-700"><X size={14} /></button>
+                </div>
+              )}
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Descripción</label>
@@ -687,13 +910,30 @@ export default function Admin() {
                 <td className="p-4">
                   {editingCategoryId === category.id ? (
                     <div className="space-y-2">
-                      {category.image && <img src={category.image} alt="" className="w-10 h-10 object-cover rounded mb-1" />}
-                      <input 
-                        type="file" 
-                        accept="image/*"
-                        onChange={(e) => setEditCategoryImage(e.target.files?.[0] || null)}
-                        className="w-full text-[10px] border border-gray-300 rounded p-1"
-                      />
+                      {category.image && !editCategoryImageUrl && <img src={category.image} alt="" className="w-10 h-10 object-cover rounded mb-1" />}
+                      {editCategoryImageUrl && <img src={editCategoryImageUrl} alt="" className="w-10 h-10 object-cover rounded mb-1 border border-green-500" referrerPolicy="no-referrer" />}
+                      <div className="flex items-center gap-1">
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => {
+                            setEditCategoryImage(e.target.files?.[0] || null);
+                            setEditCategoryImageUrl('');
+                          }}
+                          className="w-full text-[10px] border border-gray-300 rounded p-1"
+                        />
+                        <span className="text-gray-400 text-xs">o</span>
+                        <button 
+                          type="button"
+                          onClick={() => openImagePicker((url) => {
+                            setEditCategoryImageUrl(url);
+                            setEditCategoryImage(null);
+                          })}
+                          className="bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors text-[10px] font-medium flex items-center gap-1"
+                        >
+                          <ImageIcon size={12} /> Galería
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     category.image ? (
@@ -871,7 +1111,9 @@ export default function Admin() {
     setEditBundleItems(product.bundleItems || []);
     setEditSalePrice(product.salePrice?.toString() || '');
     setEditProductImage(null);
+    setEditImageUrl('');
     setEditAdditionalImages([]);
+    setEditAdditionalImageUrls([]);
     setEditExistingImages(product.images || []);
     setEditVariants(product.variants?.map((v: any) => ({
       id: v.id,
@@ -901,9 +1143,12 @@ export default function Admin() {
         isFeatured: editIsFeatured,
         isBundle: editIsBundle,
         bundleItems: editIsBundle ? editBundleItems : [],
-        variants: editVariants as any
-      }, editProductImage || undefined, editAdditionalImages.length > 0 ? editAdditionalImages : undefined);
+        variants: editVariants as any,
+        image: editImageUrl || product.image, // Use new gallery URL if selected, otherwise keep existing
+      }, editProductImage || undefined, editAdditionalImages.length > 0 ? editAdditionalImages : undefined, editAdditionalImageUrls.length > 0 ? editAdditionalImageUrls : undefined);
       setEditingProductId(null);
+      setEditImageUrl('');
+      setEditAdditionalImageUrls([]);
       showToast('Producto actualizado correctamente', 'success');
     } catch (error) {
       showToast('Error al actualizar producto', 'error');
@@ -930,12 +1175,12 @@ export default function Admin() {
         careInstructions: newProductCareInstructions,
         categoryId: newProductCategory,
         category: categories.find(c => c.id === newProductCategory)?.name || '',
-        image: '', // Will be handled by addProduct if file exists
+        image: newProductImageUrl, // Use the selected gallery URL if any
         images: [],
         isBundle: newProductIsBundle,
         bundleItems: newProductIsBundle ? newProductBundleItems : [],
         variants: newProductVariants as any
-      }, newProductImage || undefined, newProductAdditionalImages.length > 0 ? newProductAdditionalImages : undefined);
+      }, newProductImage || undefined, newProductAdditionalImages.length > 0 ? newProductAdditionalImages : undefined, newProductAdditionalImageUrls.length > 0 ? newProductAdditionalImageUrls : undefined);
 
       setIsAddingProduct(false);
       setNewProductName('');
@@ -951,7 +1196,9 @@ export default function Admin() {
       setNewProductCareInstructions('');
       setNewProductCategory('');
       setNewProductImage(null);
+      setNewProductImageUrl('');
       setNewProductAdditionalImages([]);
+      setNewProductAdditionalImageUrls([]);
       setNewProductVariants([]);
       showToast('Producto creado correctamente', 'success');
     } catch (error) {
@@ -1114,11 +1361,16 @@ export default function Admin() {
                           className="w-full border border-gray-300 p-1.5 rounded text-sm focus:outline-none focus:border-black"
                           disabled={!item.productId}
                         >
-                          <option value="">Cualquier variante / Producto base</option>
+                          <option value="">Emparejar automáticamente por Color y Talla</option>
                           {products.find(p => p.id === item.productId)?.variants?.map(v => (
                             <option key={v.id} value={v.id}>{v.color} - {v.size}</option>
                           ))}
                         </select>
+                        {!item.variantId && (
+                          <p className="text-[9px] text-gray-500 mt-1">
+                            El color y talla se elegirán según la variante del Set que compre el cliente.
+                          </p>
+                        )}
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Cantidad</label>
@@ -1178,13 +1430,24 @@ export default function Admin() {
             <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-sm font-bold uppercase tracking-widest">Variantes (Color y Talla)</h4>
-                <button 
-                  type="button"
-                  onClick={addVariantToNewProduct}
-                  className="text-xs bg-black text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-gray-800"
-                >
-                  <Plus size={14} /> Agregar Variante
-                </button>
+                <div className="flex gap-2">
+                  {newProductIsBundle && newProductBundleItems.length > 0 && (
+                    <button 
+                      type="button"
+                      onClick={() => generateVariantsFromBundle(false)}
+                      className="text-xs bg-purple-600 text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-purple-700"
+                    >
+                      Generar desde Productos
+                    </button>
+                  )}
+                  <button 
+                    type="button"
+                    onClick={addVariantToNewProduct}
+                    className="text-xs bg-black text-white px-3 py-1 rounded flex items-center gap-1 hover:bg-gray-800"
+                  >
+                    <Plus size={14} /> Agregar Variante
+                  </button>
+                </div>
               </div>
               <div className="space-y-3">
                 {newProductVariants.map((variant, index) => (
@@ -1255,25 +1518,66 @@ export default function Admin() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Imagen Principal</label>
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={(e) => setNewProductImage(e.target.files?.[0] || null)}
-                className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
-              />
+              <div className="flex gap-2 items-center">
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    setNewProductImage(e.target.files?.[0] || null);
+                    if (e.target.files?.[0]) setNewProductImageUrl('');
+                  }}
+                  className="flex-1 border border-gray-300 p-2 rounded focus:outline-none focus:border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
+                />
+                <span className="text-gray-400 text-sm">o</span>
+                <button 
+                  type="button"
+                  onClick={() => openImagePicker((url) => {
+                    setNewProductImageUrl(url);
+                    setNewProductImage(null);
+                  })}
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  <ImageIcon size={16} /> Galería
+                </button>
+              </div>
+              {newProductImageUrl && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img src={newProductImageUrl} alt="Preview" className="w-12 h-12 object-cover rounded border border-gray-200" referrerPolicy="no-referrer" />
+                  <span className="text-xs text-green-600 font-medium">Imagen seleccionada de la galería</span>
+                  <button type="button" onClick={() => setNewProductImageUrl('')} className="text-red-500 hover:text-red-700"><X size={14} /></button>
+                </div>
+              )}
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Imágenes Adicionales (Máx. 5)</label>
-              <input 
-                type="file" 
-                accept="image/*"
-                multiple
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  setNewProductAdditionalImages(files.slice(0, 5));
-                }}
-                className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
-              />
+              <div className="flex gap-2 items-center">
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setNewProductAdditionalImages(files.slice(0, 5));
+                    if (files.length > 0) setNewProductAdditionalImageUrls([]);
+                  }}
+                  className="flex-1 border border-gray-300 p-2 rounded focus:outline-none focus:border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
+                />
+                <span className="text-gray-400 text-sm">o</span>
+                <button 
+                  type="button"
+                  onClick={() => openImagePickerMultiple((urls) => {
+                    if (urls.length > 5) {
+                      showToast('Máximo 5 imágenes adicionales', 'error');
+                      return;
+                    }
+                    setNewProductAdditionalImageUrls(urls);
+                    setNewProductAdditionalImages([]);
+                  })}
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  <ImageIcon size={16} /> Galería
+                </button>
+              </div>
               {newProductAdditionalImages.length > 0 && (
                 <div className="flex gap-2 mt-2">
                   {newProductAdditionalImages.map((file, i) => (
@@ -1281,6 +1585,19 @@ export default function Admin() {
                       <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
                     </div>
                   ))}
+                </div>
+              )}
+              {newProductAdditionalImageUrls.length > 0 && (
+                <div className="mt-2">
+                  <span className="text-xs text-green-600 font-medium mb-1 block">{newProductAdditionalImageUrls.length} imágenes seleccionadas de la galería:</span>
+                  <div className="flex gap-2 flex-wrap">
+                    {newProductAdditionalImageUrls.map((url, idx) => (
+                      <div key={idx} className="relative group">
+                        <img src={url} alt={`Preview ${idx}`} className="w-12 h-12 object-cover rounded border border-gray-200" referrerPolicy="no-referrer" />
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => setNewProductAdditionalImageUrls([])} className="text-red-500 hover:text-red-700 flex items-center text-xs ml-2"><X size={14} /> Quitar</button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1367,13 +1684,24 @@ export default function Admin() {
                           <div className="bg-gray-50 p-2 rounded border border-gray-100">
                             <div className="flex justify-between items-center mb-2">
                               <span className="text-[10px] font-bold uppercase text-gray-400">Variantes</span>
-                              <button 
-                                type="button"
-                                onClick={addVariantToEditProduct}
-                                className="text-[10px] bg-black text-white px-2 py-0.5 rounded"
-                              >
-                                + Agregar
-                              </button>
+                              <div className="flex gap-1">
+                                {editIsBundle && editBundleItems.length > 0 && (
+                                  <button 
+                                    type="button"
+                                    onClick={() => generateVariantsFromBundle(true)}
+                                    className="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700"
+                                  >
+                                    Generar
+                                  </button>
+                                )}
+                                <button 
+                                  type="button"
+                                  onClick={addVariantToEditProduct}
+                                  className="text-[10px] bg-black text-white px-2 py-0.5 rounded"
+                                >
+                                  + Agregar
+                                </button>
+                              </div>
                             </div>
                             <div className="space-y-2">
                               {editVariants.map((v, i) => (
@@ -1448,20 +1776,27 @@ export default function Admin() {
                                       ))}
                                     </select>
                                     <div className="flex gap-2">
+                                    <div className="flex-1">
                                       <select 
                                         value={item.variantId || ''}
                                         onChange={(e) => updateEditProductBundleItem(i, 'variantId', e.target.value)}
-                                        className="flex-1 border border-gray-300 p-1 rounded text-[10px]"
+                                        className="w-full border border-gray-300 p-1 rounded text-[10px]"
                                         disabled={!item.productId}
                                       >
-                                        <option value="">Cualquier variante</option>
+                                        <option value="">Emparejar automáticamente por Color y Talla</option>
                                         {products.find(p => p.id === item.productId)?.variants?.map(v => (
                                           <option key={v.id} value={v.id}>{v.color} - {v.size}</option>
                                         ))}
                                       </select>
-                                      <input 
-                                        type="number" 
-                                        value={item.quantity}
+                                      {!item.variantId && (
+                                        <p className="text-[9px] text-gray-500 mt-0.5">
+                                          El color y talla se elegirán según la variante del Set.
+                                        </p>
+                                      )}
+                                    </div>
+                                    <input 
+                                      type="number" 
+                                      value={item.quantity}
                                         onChange={(e) => updateEditProductBundleItem(i, 'quantity', Number(e.target.value))}
                                         className="w-10 border border-gray-300 p-1 rounded text-[10px]"
                                         min="1"
@@ -1477,26 +1812,67 @@ export default function Admin() {
                           )}
                           <div className="mt-2">
                             <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Cambiar Imagen Principal</label>
-                            <input 
-                              type="file" 
-                              accept="image/*"
-                              onChange={(e) => setEditProductImage(e.target.files?.[0] || null)}
-                              className="w-full text-[10px] border border-gray-300 rounded p-1"
-                            />
+                            <div className="flex gap-2 items-center">
+                              <input 
+                                type="file" 
+                                accept="image/*"
+                                onChange={(e) => {
+                                  setEditProductImage(e.target.files?.[0] || null);
+                                  if (e.target.files?.[0]) setEditImageUrl('');
+                                }}
+                                className="flex-1 text-[10px] border border-gray-300 rounded p-1"
+                              />
+                              <span className="text-gray-400 text-xs">o</span>
+                              <button 
+                                type="button"
+                                onClick={() => openImagePicker((url) => {
+                                  setEditImageUrl(url);
+                                  setEditProductImage(null);
+                                })}
+                                className="bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors text-[10px] font-medium flex items-center gap-1"
+                              >
+                                <ImageIcon size={12} /> Galería
+                              </button>
+                            </div>
+                            {editImageUrl && (
+                              <div className="mt-1 flex items-center gap-2">
+                                <img src={editImageUrl} alt="Preview" className="w-8 h-8 object-cover rounded border border-gray-200" referrerPolicy="no-referrer" />
+                                <span className="text-[10px] text-green-600 font-medium">De galería</span>
+                                <button type="button" onClick={() => setEditImageUrl('')} className="text-red-500 hover:text-red-700"><X size={12} /></button>
+                              </div>
+                            )}
                           </div>
                           <div className="mt-2">
                             <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Imágenes Adicionales (Reemplaza todas)</label>
-                            <input 
-                              type="file" 
-                              accept="image/*"
-                              multiple
-                              onChange={(e) => {
-                                const files = Array.from(e.target.files || []);
-                                setEditAdditionalImages(files.slice(0, 5));
-                              }}
-                              className="w-full text-[10px] border border-gray-300 rounded p-1"
-                            />
-                            {editExistingImages.length > 0 && editAdditionalImages.length === 0 && (
+                            <div className="flex gap-2 items-center">
+                              <input 
+                                type="file" 
+                                accept="image/*"
+                                multiple
+                                onChange={(e) => {
+                                  const files = Array.from(e.target.files || []);
+                                  setEditAdditionalImages(files.slice(0, 5));
+                                  if (files.length > 0) setEditAdditionalImageUrls([]);
+                                }}
+                                className="flex-1 text-[10px] border border-gray-300 rounded p-1"
+                              />
+                              <span className="text-gray-400 text-xs">o</span>
+                              <button 
+                                type="button"
+                                onClick={() => openImagePickerMultiple((urls) => {
+                                  if (urls.length > 5) {
+                                    showToast('Máximo 5 imágenes adicionales', 'error');
+                                    return;
+                                  }
+                                  setEditAdditionalImageUrls(urls);
+                                  setEditAdditionalImages([]);
+                                })}
+                                className="bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors text-[10px] font-medium flex items-center gap-1"
+                              >
+                                <ImageIcon size={12} /> Galería
+                              </button>
+                            </div>
+                            {editExistingImages.length > 0 && editAdditionalImages.length === 0 && editAdditionalImageUrls.length === 0 && (
                               <div className="flex gap-1 mt-1">
                                 {editExistingImages.map((img, i) => (
                                   <img key={i} src={img} alt="" className="w-6 h-6 object-cover rounded" />
@@ -1508,6 +1884,14 @@ export default function Admin() {
                                 {editAdditionalImages.map((file, i) => (
                                   <img key={i} src={URL.createObjectURL(file)} alt="" className="w-6 h-6 object-cover rounded" />
                                 ))}
+                              </div>
+                            )}
+                            {editAdditionalImageUrls.length > 0 && (
+                              <div className="flex gap-1 mt-1 flex-wrap">
+                                {editAdditionalImageUrls.map((url, i) => (
+                                  <img key={i} src={url} alt="" className="w-6 h-6 object-cover rounded border border-gray-200" referrerPolicy="no-referrer" />
+                                ))}
+                                <button type="button" onClick={() => setEditAdditionalImageUrls([])} className="text-red-500 hover:text-red-700 flex items-center text-[10px] ml-1"><X size={12} /> Quitar</button>
                               </div>
                             )}
                           </div>
@@ -2512,6 +2896,17 @@ export default function Admin() {
                 <Folder size={18} /> Categorías
               </button>
               <button
+                onClick={() => {
+                  setActiveTab('gallery');
+                  fetchGalleryImages();
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'gallery' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <ImageIcon size={18} /> Galería
+              </button>
+              <button
                 onClick={() => setActiveTab('sizes')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === 'sizes' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50'
@@ -2556,6 +2951,7 @@ export default function Admin() {
             {activeTab === 'returns' && renderReturns()}
             {activeTab === 'sizes' && renderSizes()}
             {activeTab === 'categories' && renderCategories()}
+            {activeTab === 'gallery' && renderGallery()}
           </motion.div>
         </div>
 
@@ -2577,6 +2973,107 @@ export default function Admin() {
         message={confirmModal.message}
         isDestructive={confirmModal.isDestructive}
       />
+
+      {/* Image Picker Modal */}
+      {isImagePickerOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl shadow-xl max-w-4xl w-full p-6 max-h-[90vh] flex flex-col"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-serif font-bold">Seleccionar Imagen</h3>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <input 
+                    type="file" 
+                    multiple={imagePickerMultiple}
+                    accept="image/*" 
+                    onChange={handleGalleryUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={galleryLoading}
+                  />
+                  <button className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-2 hover:bg-gray-200 transition-colors text-sm font-medium">
+                    {galleryLoading ? <Spinner size="sm" /> : <Plus size={16} />}
+                    Subir a Galería
+                  </button>
+                </div>
+                <button onClick={() => setIsImagePickerOpen(false)} className="text-gray-400 hover:text-black">
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto min-h-[300px]">
+              {galleryLoading && galleryImages.length === 0 ? (
+                <div className="flex justify-center items-center h-full">
+                  <Spinner size="lg" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {galleryImages.map((img) => {
+                    const isSelected = selectedGalleryImages.includes(img.url);
+                    return (
+                      <div 
+                        key={img.name} 
+                        onClick={() => {
+                          if (imagePickerMultiple) {
+                            if (isSelected) {
+                              setSelectedGalleryImages(prev => prev.filter(url => url !== img.url));
+                            } else {
+                              setSelectedGalleryImages(prev => [...prev, img.url]);
+                            }
+                          } else {
+                            if (imagePickerCallback) imagePickerCallback(img.url);
+                            setIsImagePickerOpen(false);
+                          }
+                        }}
+                        className={`relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${isSelected ? 'border-black' : 'border-transparent hover:border-gray-300'}`}
+                      >
+                        <img src={img.url} alt={img.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-black text-white rounded-full p-1">
+                            <CheckCircle size={16} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {galleryImages.length === 0 && !galleryLoading && (
+                    <div className="col-span-full text-center py-12 text-gray-500">
+                      No hay imágenes en la galería.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {imagePickerMultiple && (
+              <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+                <span className="text-sm text-gray-500">{selectedGalleryImages.length} imágenes seleccionadas</span>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setIsImagePickerOpen(false)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 font-medium hover:bg-gray-50 transition-colors text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (imagePickerMultipleCallback) imagePickerMultipleCallback(selectedGalleryImages);
+                      setIsImagePickerOpen(false);
+                    }}
+                    className="px-4 py-2 rounded-lg bg-black text-white font-medium hover:bg-gray-800 transition-colors text-sm"
+                  >
+                    Confirmar Selección
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
 
       {isConfirmModalOpen && pendingOrderUpdate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

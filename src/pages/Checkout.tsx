@@ -130,29 +130,49 @@ export default function Checkout() {
           const inventoryItems: any[] = [];
           
           cart.forEach(item => {
-            // 1. Discount the main product (the bundle itself or the regular product)
-            inventoryItems.push({
-              id: item.id,
-              variantId: item.selectedVariantId || null,
-              quantity: item.quantity,
-              selectedColor: item.selectedColor || null,
-              selectedSize: item.selectedSize || null
-            });
-
-            // 2. If it's a bundle, we ALSO discount its components
             if (item.isBundle && item.bundleItems && item.bundleItems.length > 0) {
+              // If it's a bundle, ONLY discount its components
               console.log(`Processing bundle components for: ${item.name}`, item.bundleItems);
               item.bundleItems.forEach(bundleItem => {
                 const baseProduct = products.find(p => p.id === bundleItem.productId);
-                const variant = baseProduct?.variants?.find(v => v.id === bundleItem.variantId);
+                
+                let targetVariantId = bundleItem.variantId || null;
+                let targetColor = null;
+                let targetSize = null;
+
+                if (targetVariantId) {
+                  const variant = baseProduct?.variants?.find(v => v.id === targetVariantId);
+                  targetColor = variant?.color || null;
+                  targetSize = variant?.size || null;
+                } else if (item.selectedColor && item.selectedSize) {
+                  // If bundle item doesn't specify a variant, try to match the bundle's selected color and size
+                  const matchingVariant = baseProduct?.variants?.find(v => v.color === item.selectedColor && v.size === item.selectedSize);
+                  if (matchingVariant) {
+                    targetVariantId = matchingVariant.id;
+                    targetColor = matchingVariant.color;
+                    targetSize = matchingVariant.size;
+                  } else {
+                    targetColor = item.selectedColor;
+                    targetSize = item.selectedSize;
+                  }
+                }
                 
                 inventoryItems.push({
                   id: bundleItem.productId,
-                  variantId: bundleItem.variantId || null,
+                  variantId: targetVariantId,
                   quantity: bundleItem.quantity * item.quantity,
-                  selectedColor: variant?.color || null,
-                  selectedSize: variant?.size || null
+                  selectedColor: targetColor,
+                  selectedSize: targetSize
                 });
+              });
+            } else {
+              // If it's a regular product, discount the product itself
+              inventoryItems.push({
+                id: item.id,
+                variantId: item.selectedVariantId || null,
+                quantity: item.quantity,
+                selectedColor: item.selectedColor || null,
+                selectedSize: item.selectedSize || null
               });
             }
           });
