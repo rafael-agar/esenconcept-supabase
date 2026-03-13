@@ -121,15 +121,22 @@ export default function Home() {
 
       {/* About Section */}
       <section id="about" className="py-20 px-4 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="order-2 md:order-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-stretch">
+          <div className="order-2 md:order-1 relative group overflow-hidden rounded-sm shadow-sm aspect-[9/16]">
             <img 
-              src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=2073&auto=format&fit=crop" 
-              alt="About Us" 
-              className="w-full h-auto object-cover"
+              src="https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/JESSICA01.webp" 
+              alt="Sobre Mí" 
+              className="w-full h-full object-cover transition-opacity duration-700 group-hover:opacity-0"
+              referrerPolicy="no-referrer"
+            />
+            <img 
+              src="https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/JESSICA02.webp" 
+              alt="Sobre Mí - Jessica" 
+              className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+              referrerPolicy="no-referrer"
             />
           </div>
-          <div className="order-1 md:order-2 md:pl-12">
+          <div className="order-1 md:order-2 md:pl-12 flex flex-col justify-center">
             <h2 className="text-3xl font-serif font-bold mb-6">Sobre Mí</h2>
             <p className="text-gray-600 mb-6 leading-relaxed">
               ESEN CONCEPT nace desde un proceso de transformación personal, de volver a la raíz, de aprender a sostenerme, de sanar, de confiar.
@@ -146,9 +153,11 @@ export default function Home() {
               Se alinea.<br/>
               Y desde ahí, florece.
             </p>
-            <Link to="/about" className="text-black font-bold uppercase tracking-widest border-b border-black pb-1 hover:text-gray-600 hover:border-gray-600 transition-colors">
-              Leer Más
-            </Link>
+            <div>
+              <Link to="/about" className="text-black font-bold uppercase tracking-widest border-b border-black pb-1 hover:text-gray-600 hover:border-gray-600 transition-colors">
+                Leer Más
+              </Link>
+            </div>
           </div>
         </div>
       </section>
