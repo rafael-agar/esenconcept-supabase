@@ -45,6 +45,7 @@ export interface Product {
   variants?: ProductVariant[];
   isBundle?: boolean;
   bundleItems?: BundleItem[];
+  reviewsCount?: number;
 }
 
 export interface Category {

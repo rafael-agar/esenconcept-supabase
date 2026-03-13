@@ -9,10 +9,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import ProductCard from '../components/ProductCard';
 
 export default function ProductDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { products, refreshProducts, isLoading } = useProducts();
-  const product = products.find(p => p.id === id);
+  const product = products.find(p => p.slug === slug || p.id === slug);
   const { addToCart } = useCart();
   const { toggleFavorite, isFavorite, isAuthenticated } = useAuth();
 
@@ -56,7 +56,7 @@ export default function ProductDetail() {
         setSelectedSize(product.variants[0].size);
       }
     }
-  }, [id, product]);
+  }, [slug, product]);
 
   // Update image if variant has one
   useEffect(() => {
@@ -282,7 +282,7 @@ export default function ProductDetail() {
                 <Star key={i} size={16} fill="currentColor" />
               ))}
             </div>
-            <span className="text-sm text-gray-500">(24 reviews)</span>
+            <span className="text-sm text-gray-500">({product.reviewsCount || 0} reviews)</span>
           </div>
 
           <p className="text-gray-600 mb-6 leading-relaxed">

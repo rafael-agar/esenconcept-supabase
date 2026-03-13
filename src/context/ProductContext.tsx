@@ -156,6 +156,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           isFeatured: !!p.is_featured,
           isActive: p.is_active !== false,
           isBundle: !!p.is_bundle,
+          reviewsCount: p.reviews_count || 0,
           bundleItems: productBundleItems.map(b => ({
             productId: b.child_product_id,
             variantId: b.child_variant_id,
@@ -301,6 +302,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           is_sale: product.isSale || false,
           sale_price: product.salePrice || null,
           is_bundle: product.isBundle || false,
+          reviews_count: product.reviewsCount || 0,
           is_active: true
         }])
         .select()
@@ -393,11 +395,14 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         ? updatedProduct.variants.reduce((sum, v) => sum + (v.stock || 0), 0)
         : updatedProduct.stock;
 
+      const slug = updatedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
       // 1. Update product
       const { error: productError } = await supabase
         .from('products')
         .update({
           name: updatedProduct.name,
+          slug: slug,
           price: updatedProduct.price,
           sale_price: updatedProduct.salePrice || null,
           is_sale: updatedProduct.isSale || false,
@@ -410,6 +415,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           care_instructions: updatedProduct.careInstructions,
           category_id: updatedProduct.categoryId,
           is_bundle: updatedProduct.isBundle || false,
+          reviews_count: updatedProduct.reviewsCount || 0,
           image_url: imageUrl
         })
         .eq('id', updatedProduct.id);

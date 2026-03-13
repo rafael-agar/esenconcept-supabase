@@ -20,7 +20,7 @@ const slides = [
     subtitle: 'Calma Set',
     title: 'Un diseño que equilibra comodidad y elegancia',
     buttonText: 'Descubrir Más',
-    link: '/product/44c8cc3a-ba43-4765-9d4b-d60c2054674c'
+    link: '/product/calma-set-short'
   },
   {
     id: 3,
@@ -29,7 +29,7 @@ const slides = [
     subtitle: 'Raíz Set',
     title: 'La pieza que dio origen a todo',
     buttonText: 'Ver Set',
-    link: '/product/3d509536-ed7c-4f99-a5f0-77372df7ed1c'
+    link: '/product/raiz-set'
   }
 ];
 

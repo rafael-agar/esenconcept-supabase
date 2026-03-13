@@ -290,7 +290,7 @@ export default function Navbar() {
                     filteredProducts.map(product => (
                       <Link 
                         key={product.id} 
-                        to={`/product/${product.id}`}
+                        to={`/product/${product.slug || product.id}`}
                         onClick={() => setIsSearchOpen(false)}
                         className="flex items-center gap-4 group"
                       >

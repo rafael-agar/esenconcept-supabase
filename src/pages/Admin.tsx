@@ -173,6 +173,7 @@ export default function Admin() {
   const [editVariants, setEditVariants] = useState<{ id?: string, color: string, colorCode: string, size: string, stock: number }[]>([]);
   const [editIsBundle, setEditIsBundle] = useState(false);
   const [editBundleItems, setEditBundleItems] = useState<{ productId: string, variantId?: string, quantity: number }[]>([]);
+  const [editReviewsCount, setEditReviewsCount] = useState<string>('0');
 
   const addVariantToEditProduct = () => {
     setEditVariants([...editVariants, { color: '', colorCode: '#000000', size: sizes[0]?.name || '', stock: 0 }]);
@@ -207,6 +208,7 @@ export default function Admin() {
   const [newProductVariants, setNewProductVariants] = useState<{ color: string, colorCode: string, size: string, stock: number }[]>([]);
   const [newProductIsBundle, setNewProductIsBundle] = useState(false);
   const [newProductBundleItems, setNewProductBundleItems] = useState<{ productId: string, variantId?: string, quantity: number }[]>([]);
+  const [newProductReviewsCount, setNewProductReviewsCount] = useState<string>('0');
   const [isUploading, setIsUploading] = useState(false);
 
   // Gallery State
@@ -1118,6 +1120,7 @@ export default function Admin() {
     setEditIsSale(product.isSale || false);
     setEditIsBundle(product.isBundle || false);
     setEditBundleItems(product.bundleItems || []);
+    setEditReviewsCount(product.reviewsCount?.toString() || '0');
     setEditSalePrice(product.salePrice?.toString() || '');
     setEditProductImage(null);
     setEditImageUrl('');
@@ -1151,6 +1154,7 @@ export default function Admin() {
         careInstructions: editCareInstructions,
         isFeatured: editIsFeatured,
         isBundle: editIsBundle,
+        reviewsCount: Number(editReviewsCount) || 0,
         bundleItems: editIsBundle ? editBundleItems : [],
         variants: editVariants as any,
         image: editImageUrl || product.image, // Use new gallery URL if selected, otherwise keep existing
@@ -1187,6 +1191,7 @@ export default function Admin() {
         image: newProductImageUrl, // Use the selected gallery URL if any
         images: [],
         isBundle: newProductIsBundle,
+        reviewsCount: Number(newProductReviewsCount) || 0,
         bundleItems: newProductIsBundle ? newProductBundleItems : [],
         variants: newProductVariants as any
       }, newProductImage || undefined, newProductAdditionalImages.length > 0 ? newProductAdditionalImages : undefined, newProductAdditionalImageUrls.length > 0 ? newProductAdditionalImageUrls : undefined);
@@ -1209,6 +1214,7 @@ export default function Admin() {
       setNewProductAdditionalImages([]);
       setNewProductAdditionalImageUrls([]);
       setNewProductVariants([]);
+      setNewProductReviewsCount('0');
       showToast('Producto creado correctamente', 'success');
     } catch (error) {
       showToast('Error al crear producto', 'error');
@@ -1322,6 +1328,16 @@ export default function Admin() {
                 readOnly={newProductVariants.length > 0 || newProductIsBundle}
                 className={`w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black ${newProductVariants.length > 0 || newProductIsBundle ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
                 required
+                min="0"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Reviews Iniciales</label>
+              <input 
+                type="number" 
+                value={newProductReviewsCount}
+                onChange={(e) => setNewProductReviewsCount(e.target.value)}
+                className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black"
                 min="0"
               />
             </div>
@@ -1636,6 +1652,7 @@ export default function Admin() {
                 <th className="p-4 font-bold">Precio</th>
                 <th className="p-4 font-bold">Stock</th>
                 <th className="p-4 font-bold">Dañado</th>
+                <th className="p-4 font-bold">Reviews</th>
                 <th className="p-4 font-bold">Etiquetas</th>
                 <th className="p-4 font-bold">Acciones</th>
               </tr>
@@ -1964,6 +1981,15 @@ export default function Admin() {
                         </div>
                       </td>
                       <td className="p-4">
+                        <input 
+                          type="number" 
+                          value={editReviewsCount} 
+                          onChange={(e) => setEditReviewsCount(e.target.value)}
+                          className="w-16 border border-gray-300 rounded p-1 text-xs"
+                          min="0"
+                        />
+                      </td>
+                      <td className="p-4">
                         <div className="flex flex-col gap-1">
                           <label className="flex items-center gap-1 text-[10px] font-bold uppercase text-gray-500">
                             <input 
@@ -2042,6 +2068,11 @@ export default function Admin() {
                           (product.damagedStock || 0) > 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'
                         }`}>
                           {product.damagedStock || 0}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-xs font-medium text-gray-600">
+                          {product.reviewsCount || 0}
                         </span>
                       </td>
                       <td className="p-4">

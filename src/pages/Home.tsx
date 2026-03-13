@@ -106,13 +106,12 @@ export default function Home() {
           />
         </div>
         <div className="relative max-w-7xl mx-auto text-right text-white flex flex-col items-end">
-          <span className="text-sm font-bold uppercase tracking-widest mb-4 block">Oferta Especial</span>
           <h2 className="text-4xl md:text-6xl font-serif font-bold mb-8">Creamos piezas con historia</h2>
           <p className="text-xl mb-10 max-w-2xl font-light">
             Diseños pensados para acompañarte en los momentos que construyen tu camino
           </p>
           <Link 
-            to="/shop?search=Fortaleza"
+            to="/about"
             className="inline-block bg-white text-black px-10 py-4 text-sm font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors"
           >
             Mi historia

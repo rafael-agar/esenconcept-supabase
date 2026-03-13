@@ -3,7 +3,7 @@ import { Product } from '../data/products';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'motion/react';
-import { Plus, Heart } from 'lucide-react';
+import { Plus, Heart, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface ProductCardProps {
@@ -33,7 +33,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       transition={{ duration: 0.5 }}
       className="group relative"
     >
-      <Link to={`/product/${product.id}`} className="block">
+      <Link to={`/product/${product.slug || product.id}`} className="block">
         <div className="relative overflow-hidden aspect-[3/4] mb-4 bg-gray-100">
           <img
             src={product.image}
@@ -77,6 +77,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         
         <div className="text-center">
           <h3 className="text-sm font-medium text-gray-900 mb-1 group-hover:text-gray-600 transition-colors">{product.name}</h3>
+          
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <div className="flex text-yellow-500">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Star key={i} size={10} fill="currentColor" />
+              ))}
+            </div>
+            <span className="text-[10px] text-gray-400">({product.reviewsCount || 0})</span>
+          </div>
+
           <p className="text-sm text-gray-500 font-serif italic">
             {product.isSale && product.salePrice ? (
               <>
