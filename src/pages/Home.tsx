@@ -102,19 +102,20 @@ export default function Home() {
             src="https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/sni9cj1pje_1773279135411.webp" 
             alt="Promo Background" 
             className="w-full h-full object-cover object-left md:object-center opacity-40"
+            referrerPolicy="no-referrer"
           />
         </div>
         <div className="relative max-w-7xl mx-auto text-right text-white flex flex-col items-end">
           <span className="text-sm font-bold uppercase tracking-widest mb-4 block">Oferta Especial</span>
-          <h2 className="text-4xl md:text-6xl font-serif font-bold mb-8">Rebajas de Invierno</h2>
+          <h2 className="text-4xl md:text-6xl font-serif font-bold mb-8">Rebajas de Semana Santa</h2>
           <p className="text-xl mb-10 max-w-2xl font-light">
-            Hasta un 50% de descuento en artículos seleccionados. Renueva tu guardarropa con estilo.
+            Hasta un 20% de descuento en artículos seleccionados. Encuentra tu Fortaleza Set y renueva tu esencia.
           </p>
           <Link 
-            to="/shop?filter=sale"
+            to="/shop?search=Fortaleza"
             className="inline-block bg-white text-black px-10 py-4 text-sm font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors"
           >
-            Comprar Rebajas
+            Ver Fortaleza Set
           </Link>
         </div>
       </section>
@@ -143,7 +144,7 @@ export default function Home() {
               Es recordar quién eras antes del ruido, antes del miedo, antes de convertirte en una versión que no se sentía propia.
             </p>
             <p className="text-gray-600 mb-6 leading-relaxed">
-              Nuestra primera categoría, RAÍZ, habla de estabilidad. De identidad. De reconstrucción silenciosa.
+              Nuestra primera capsula, RAÍZ, habla de estabilidad. De identidad. De reconstrucción silenciosa.
               Deseo que cada prenda que uses recuerdes lo valiosa, fuerte, poderosa que eres y todo lo que has superado.
             </p>
             <p className="text-gray-600 mb-8 leading-relaxed font-medium italic">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const slides = [
   {
@@ -9,7 +10,8 @@ const slides = [
     src: 'https://res.cloudinary.com/dgoxcbro5/video/upload/v1773163775/banner01_rtshmv.mp4',
     subtitle: 'Nueva Colección',
     title: 'Atrévete a ser tú misma',
-    buttonText: 'Comprar Ahora'
+    buttonText: 'Comprar Ahora',
+    link: '/shop'
   },
   {
     id: 2,
@@ -17,7 +19,8 @@ const slides = [
     src: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner2-calmaset.webp',
     subtitle: 'Edición Limitada',
     title: 'Estilo y Confort',
-    buttonText: 'Descubrir Más'
+    buttonText: 'Descubrir Más',
+    link: '/shop'
   },
   {
     id: 3,
@@ -25,7 +28,8 @@ const slides = [
     src: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner%204%20set%20raiz.webp',
     subtitle: 'Otoño / Invierno 2024',
     title: 'Elegancia Atemporal',
-    buttonText: 'Ver Colección'
+    buttonText: 'Ver Colección',
+    link: '/shop'
   }
 ];
 
@@ -108,14 +112,16 @@ export default function Hero() {
             >
               {slides[currentSlide].title}
             </motion.h1>
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="bg-white text-black px-8 py-4 text-sm font-bold tracking-widest uppercase hover:bg-black hover:text-white transition-colors duration-300"
-            >
-              {slides[currentSlide].buttonText}
-            </motion.button>
+            <Link to={slides[currentSlide].link}>
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+                className="bg-white text-black px-8 py-4 text-sm font-bold tracking-widest uppercase hover:bg-black hover:text-white transition-colors duration-300"
+              >
+                {slides[currentSlide].buttonText}
+              </motion.button>
+            </Link>
           </div>
         </motion.div>
       </AnimatePresence>
