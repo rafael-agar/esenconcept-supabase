@@ -8,28 +8,28 @@ const slides = [
     id: 1,
     type: 'video',
     src: 'https://res.cloudinary.com/dgoxcbro5/video/upload/v1773163775/banner01_rtshmv.mp4',
-    subtitle: 'Nueva Colección',
-    title: 'Atrévete a ser tú misma',
-    buttonText: 'Comprar Ahora',
+    subtitle: 'RAÍZ',
+    title: 'Donde empieza todo',
+    buttonText: 'Nuestra primera cápsula',
     link: '/shop'
   },
   {
     id: 2,
     type: 'image',
     src: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner2-calmaset.webp',
-    subtitle: 'Edición Limitada',
-    title: 'Estilo y Confort',
+    subtitle: 'Calma Set',
+    title: 'Un diseño que equilibra comodidad y elegancia',
     buttonText: 'Descubrir Más',
-    link: '/shop'
+    link: '/product/44c8cc3a-ba43-4765-9d4b-d60c2054674c'
   },
   {
     id: 3,
     type: 'image',
     src: 'https://wrpsqmdwhwbruqgyjdis.supabase.co/storage/v1/object/public/product-images/banner%204%20set%20raiz.webp',
-    subtitle: 'Otoño / Invierno 2024',
-    title: 'Elegancia Atemporal',
-    buttonText: 'Ver Colección',
-    link: '/shop'
+    subtitle: 'Raíz Set',
+    title: 'La pieza que dio origen a todo',
+    buttonText: 'Ver Set',
+    link: '/product/3d509536-ed7c-4f99-a5f0-77372df7ed1c'
   }
 ];
 
