@@ -1,7 +1,9 @@
--- Añadir columna email a la tabla profiles
+-- 1. Asegurar que las columnas existen en la tabla profiles
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_lead_conversion BOOLEAN DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS converted_at TIMESTAMP WITH TIME ZONE;
 
--- Actualizar el trigger para que guarde el email
+-- 2. Actualizar la función que maneja nuevos usuarios para incluir el email
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
@@ -16,8 +18,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Actualizar los emails de los perfiles existentes (opcional, requiere permisos de superusuario o ejecutarlo desde el panel de Supabase)
+-- 3. Sincronizar emails de usuarios existentes desde auth.users a public.profiles
 UPDATE public.profiles p
 SET email = u.email
 FROM auth.users u
-WHERE p.id = u.id AND p.email IS NULL;
+WHERE p.id = u.id AND (p.email IS NULL OR p.email = '');

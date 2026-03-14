@@ -272,24 +272,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (data.user) {
       // 3. Update profile with additional details and conversion info
+      const profileData = {
+        id: data.user.id,
+        full_name: name,
+        email: email,
+        phone: phone,
+        address: address,
+        role: 'customer' as const,
+        is_lead_conversion: isLeadConversion,
+        converted_at: isLeadConversion ? new Date().toISOString() : null
+      };
+
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({
-          id: data.user.id,
-          full_name: name,
-          email: email,
-          phone: phone,
-          address: address,
-          role: 'customer',
-          is_lead_conversion: isLeadConversion,
-          converted_at: isLeadConversion ? new Date().toISOString() : null
-        });
+        .upsert(profileData);
 
       if (profileError) {
         console.error('Error updating profile details:', profileError);
       }
 
-      // 4. Optional: Mark lead as converted in leads table if needed
+      // 4. Manually set user state to avoid waiting for onAuthStateChange/fetchProfile race
+      setUser({
+        id: data.user.id,
+        name: name,
+        email: email,
+        phone: phone,
+        address: address,
+        role: 'customer'
+      });
+
+      // 5. Optional: Mark lead as converted in leads table if needed
       if (isLeadConversion) {
         await supabase
           .from('leads')

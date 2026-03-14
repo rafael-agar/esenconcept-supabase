@@ -471,7 +471,7 @@ export default function Admin() {
         if (userIds.length > 0) {
           const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
-            .select('id, full_name, email, phone, document_id')
+            .select('*')
             .in('id', userIds);
             
           if (!profilesError && profilesData) {
@@ -582,7 +582,7 @@ export default function Admin() {
       if (userIds.length > 0) {
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, full_name, email')
+          .select('*')
           .in('id', userIds);
         
         if (!profilesError && profilesData) {
@@ -2699,7 +2699,7 @@ export default function Admin() {
                       )}
                     </div>
                   </td>
-                  <td className="p-4 text-sm text-gray-600">{u.email}</td>
+                  <td className="p-4 text-sm text-gray-600">{u.email || 'Sin email'}</td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
