@@ -89,7 +89,7 @@ const ReturnsAndWarranty: React.FC = () => {
         <p className="text-gray-600 mb-8">Estamos aquí para ayudarte en lo que necesites.</p>
         <div className="flex justify-center">
           <a 
-            href="https://wa.me/584226413853?text=Hola%20ESEN%2C%20me%20gustar%C3%ADa%20consultar%20sobre%20un%20cambio%20o%20garant%C3%ADa..." 
+            href="https://wa.me/584226413853?text=Hola%20ESEN%2C%20me%20gustar%C3%ADa%20consultar%20sobre%20un%20cambio%20o%20garant%C3%ADa.%0A%0A-%20N%C3%BAmero%20de%20orden%3A%0A-%20Detalles%3A%0A-%20%C2%BFEs%20cambio%20o%20problema%20de%20f%C3%A1brica%3F%3A" 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-black text-white px-10 py-4 rounded-full text-sm font-bold uppercase tracking-widest hover:bg-gray-800 transition-all hover:scale-105 shadow-lg shadow-black/5"
