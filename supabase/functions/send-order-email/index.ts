@@ -22,19 +22,26 @@ interface Order {
   id: string;
   total: number;
   shippingCost: number;
+  discountAmount?: number;
+  saleDiscount?: number;
+  couponCode?: string;
+  couponDiscount?: number;
   items: OrderItem[];
   shippingAddress: string;
+  city?: string;
+  postalCode?: string;
   paymentMethod: string;
   status: string;
   isGift?: boolean;
   giftDetails?: {
     recipientName: string;
-    recipientEmail: string;
     message: string;
   };
   paymentDetails?: {
     referenceNumber: string;
     bank: string;
+    depositorName?: string;
+    depositorId?: string;
   };
   user_email: string;
   user_name: string;
@@ -50,23 +57,26 @@ const generateEmailHtml = (order: Order, isCustomer: boolean, type: string = 'ne
     minute: '2-digit'
   });
 
+  const originalSubtotal = order.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const saleDiscount = order.saleDiscount || 0;
+
   const itemsHtml = order.items.map(item => `
     <tr>
-      <td style="padding: 12px; border-bottom: 1px solid #eee;">
+      <td style="padding: 15px 10px; border-bottom: 1px solid #f0f0f0;">
         <div style="display: flex; align-items: center;">
-          ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px; border-radius: 4px;">` : ''}
-          <div>
-            <strong>${item.name}</strong><br>
-            <span style="font-size: 12px; color: #666;">
+          ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 60px; height: 60px; object-fit: cover; margin-right: 15px; border-radius: 8px; border: 1px solid #eee;">` : ''}
+          <div style="line-height: 1.4;">
+            <strong style="color: #1a1a1a; font-size: 14px;">${item.name}</strong><br>
+            <span style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
               ${item.selectedColor ? `Color: ${item.selectedColor}` : ''} 
-              ${item.selectedSize ? `| Talla: ${item.selectedSize}` : ''}
+              ${item.selectedSize ? `${item.selectedColor ? ' | ' : ''}Talla: ${item.selectedSize}` : ''}
             </span>
           </div>
         </div>
       </td>
-      <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-      <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">
-        $${(item.isSale && item.salePrice ? item.salePrice : item.price).toFixed(2)}
+      <td style="padding: 15px 10px; border-bottom: 1px solid #f0f0f0; text-align: center; color: #666;">${item.quantity}</td>
+      <td style="padding: 15px 10px; border-bottom: 1px solid #f0f0f0; text-align: right; font-weight: 600; color: #1a1a1a;">
+        $${item.price.toFixed(2)}
       </td>
     </tr>
   `).join('');
@@ -81,7 +91,7 @@ const generateEmailHtml = (order: Order, isCustomer: boolean, type: string = 'ne
     message = `
       <p>Hola ${order.user_name},</p>
       <p>Nos complace informarte que tu pago ha sido <strong>aprobado exitosamente</strong>.</p>
-      <p>En las próximas 24 horas, tu pedido será enviado y recibirás un nuevo correo con la guía de rastreo correspondiente.</p>
+      <p>En las próximas horas, tu pedido será enviado y recibirás un nuevo correo con la guía de rastreo correspondiente.</p>
       <p>Gracias por confiar en ESEN Concept.</p>
     `;
   } else {
@@ -105,46 +115,55 @@ const generateEmailHtml = (order: Order, isCustomer: boolean, type: string = 'ne
     <html>
     <head>
       <style>
-        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
-        .header { text-align: center; padding-bottom: 20px; border-bottom: 2px solid #000; margin-bottom: 20px; }
-        .logo { font-size: 24px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
-        .details { margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 4px; }
-        .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .total { text-align: right; font-size: 18px; font-weight: bold; margin-top: 20px; border-top: 2px solid #000; padding-top: 10px; }
-        .footer { text-align: center; font-size: 12px; color: #999; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
-        .status { display: inline-block; padding: 4px 8px; background: #fff3cd; color: #856404; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #1a1a1a; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; padding: 40px; background-color: #ffffff; border-radius: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .header { text-align: center; padding-bottom: 30px; border-bottom: 1px solid #eee; margin-bottom: 30px; }
+        .logo { margin-bottom: 15px; }
+        .title { font-size: 20px; font-weight: 300; text-transform: uppercase; letter-spacing: 3px; color: #000; margin: 0; }
+        .details { margin-bottom: 30px; background: #fafafa; padding: 20px; border: 1px solid #f0f0f0; }
+        .table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        .footer { text-align: center; font-size: 12px; color: #999; margin-top: 50px; border-top: 1px solid #eee; padding-top: 30px; }
+        .status { display: inline-block; padding: 4px 12px; background: #000; color: #fff; border-radius: 0; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .button { display: inline-block; padding: 12px 24px; background-color: #000; color: #fff; text-decoration: none; font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-top: 20px; }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
           <div class="logo">
-            <img src="${logoUrl}" alt="ESEN CONCEPT" style="max-width: 200px; height: auto;" />
+            <img src="${logoUrl}" alt="ESEN CONCEPT" style="max-width: 180px; height: auto;" />
           </div>
-          <p>${title}</p>
+          <h1 class="title">${title}</h1>
         </div>
 
         ${message}
 
         <div class="details">
-          <p><strong>Pedido ID:</strong> #${order.id.slice(0, 8)}</p>
-          <p><strong>Fecha:</strong> ${date}</p>
-          <p><strong>Estado:</strong> <span class="status">${type === 'payment_approved' ? 'Pago Aprobado' : order.status}</span></p>
-          <p><strong>Método de Pago:</strong> ${order.paymentMethod === 'pago-movil' ? 'Pago Móvil' : 'Transferencia'}</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <p style="margin: 0 0 5px 0;"><strong style="color: #888; font-size: 11px; text-transform: uppercase;">Pedido ID</strong><br>#${order.id.slice(0, 8)}</p>
+              <p style="margin: 0 0 5px 0;"><strong style="color: #888; font-size: 11px; text-transform: uppercase;">Fecha</strong><br>${date}</p>
+            </div>
+            <div>
+              <p style="margin: 0 0 5px 0;"><strong style="color: #888; font-size: 11px; text-transform: uppercase;">Estado</strong><br><span class="status">${type === 'payment_approved' ? 'Pago Aprobado' : order.status}</span></p>
+              <p style="margin: 0 0 5px 0;"><strong style="color: #888; font-size: 11px; text-transform: uppercase;">Método de Pago</strong><br>${order.paymentMethod === 'pago-movil' ? 'Pago Móvil' : 'Transferencia'}</p>
+            </div>
+          </div>
           ${order.paymentDetails ? `
-            <p><strong>Referencia:</strong> ${order.paymentDetails.referenceNumber}</p>
-            <p><strong>Banco:</strong> ${order.paymentDetails.bank}</p>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee;">
+              <p style="margin: 0 0 5px 0;"><strong style="color: #888; font-size: 11px; text-transform: uppercase;">Referencia de Pago</strong><br>${order.paymentDetails.referenceNumber} (${order.paymentDetails.bank})</p>
+              ${order.paymentDetails.depositorName ? `<p style="margin: 0;"><strong style="color: #888; font-size: 11px; text-transform: uppercase;">Depositante</strong><br>${order.paymentDetails.depositorName} ${order.paymentDetails.depositorId ? `(C.I. ${order.paymentDetails.depositorId})` : ''}</p>` : ''}
+            </div>
           ` : ''}
         </div>
 
-        <h3>Detalles del Pedido</h3>
+        <h3 style="font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; border-bottom: 1px solid #000; padding-bottom: 5px;">Detalles del Pedido</h3>
         <table class="table">
           <thead>
-            <tr style="background: #f5f5f5;">
-              <th style="padding: 10px; text-align: left;">Producto</th>
-              <th style="padding: 10px; text-align: center;">Cant.</th>
-              <th style="padding: 10px; text-align: right;">Precio</th>
+            <tr style="background: #fafafa;">
+              <th style="padding: 12px 10px; text-align: left; font-size: 11px; text-transform: uppercase; color: #888;">Producto</th>
+              <th style="padding: 12px 10px; text-align: center; font-size: 11px; text-transform: uppercase; color: #888;">Cant.</th>
+              <th style="padding: 12px 10px; text-align: right; font-size: 11px; text-transform: uppercase; color: #888;">Precio</th>
             </tr>
           </thead>
           <tbody>
@@ -152,12 +171,37 @@ const generateEmailHtml = (order: Order, isCustomer: boolean, type: string = 'ne
           </tbody>
         </table>
 
-        <div style="text-align: right; margin-top: 10px;">
-          <p><strong>Envío:</strong> ${order.shippingCost === 0 ? 'Gratis' : `$${order.shippingCost.toFixed(2)}`}</p>
-        </div>
-
-        <div class="total">
-          Total: $${order.total.toFixed(2)}
+        <div style="margin-left: auto; width: 100%; max-width: 280px; margin-top: 20px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr>
+              <td style="padding: 5px 0; color: #666;">Subtotal:</td>
+              <td style="padding: 5px 0; text-align: right; font-weight: 500;">$${originalSubtotal.toFixed(2)}</td>
+            </tr>
+            ${saleDiscount > 0 ? `
+            <tr>
+              <td style="padding: 5px 0; color: #e53e3e;">Descuento por Oferta:</td>
+              <td style="padding: 5px 0; text-align: right; font-weight: 500; color: #e53e3e;">-$${saleDiscount.toFixed(2)}</td>
+            </tr>
+            ` : ''}
+            ${order.discountAmount && order.discountAmount > 0 ? `
+            <tr>
+              <td style="padding: 5px 0; color: #e53e3e;">
+                Cupón ${order.couponCode ? `(${order.couponCode}${order.couponDiscount ? ` - ${order.couponDiscount}%` : ''})` : 'de Descuento'}:
+              </td>
+              <td style="padding: 5px 0; text-align: right; font-weight: 500; color: #e53e3e;">-$${order.discountAmount.toFixed(2)}</td>
+            </tr>
+            ` : ''}
+            <tr>
+              <td style="padding: 5px 0; color: #666;">Envío:</td>
+              <td style="padding: 5px 0; text-align: right; font-weight: 500; ${order.shippingCost === 0 ? 'color: #38a169;' : ''}">
+                ${order.shippingCost === 0 ? 'Gratis' : `$${order.shippingCost.toFixed(2)}`}
+              </td>
+            </tr>
+            <tr style="border-top: 2px solid #000;">
+              <td style="padding: 10px 0; font-weight: bold; font-size: 18px;">Total:</td>
+              <td style="padding: 10px 0; text-align: right; font-weight: bold; font-size: 18px;">$${order.total.toFixed(2)}</td>
+            </tr>
+          </table>
         </div>
 
         ${order.isGift ? `
@@ -168,8 +212,13 @@ const generateEmailHtml = (order: Order, isCustomer: boolean, type: string = 'ne
           </div>
         ` : ''}
 
-        <div style="margin-top: 20px;">
-          <p><strong>Dirección de Envío:</strong><br>${order.shippingAddress}</p>
+        <div style="margin-top: 20px; padding: 20px; background-color: #fafafa; border: 1px solid #f0f0f0;">
+          <h4 style="margin: 0 0 10px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #888;">Información de Envío</h4>
+          <p style="margin: 0; font-size: 14px;">
+            <strong>Dirección:</strong> ${order.shippingAddress}<br>
+            ${order.city ? `<strong>Ciudad:</strong> ${order.city}<br>` : ''}
+            ${order.postalCode ? `<strong>Código Postal:</strong> ${order.postalCode}` : ''}
+          </p>
         </div>
 
         <div class="footer">
@@ -195,11 +244,29 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { order, type = 'new_order' } = await req.json();
+    const body = await req.json();
+    let { order, type = 'new_order' } = body;
 
     if (!order) {
       throw new Error("No order data provided");
     }
+
+    // Normalize order properties (handle both camelCase and snake_case)
+    order = {
+      ...order,
+      total: order.total || order.total_amount || 0,
+      shippingCost: order.shippingCost !== undefined ? order.shippingCost : (order.shipping_cost !== undefined ? order.shipping_cost : 0),
+      discountAmount: order.discountAmount || order.discount_amount || 0,
+      couponCode: order.couponCode || order.coupon_code || null,
+      couponDiscount: order.couponDiscount || order.coupon_discount || 0,
+      paymentMethod: order.paymentMethod || order.payment_method || '',
+      shippingAddress: order.shippingAddress || order.shipping_address || '',
+      city: order.city || order.shipping_city || '',
+      postalCode: order.postalCode || order.shipping_postal_code || '',
+      paymentDetails: order.paymentDetails || order.payment_details || null,
+      isGift: order.isGift !== undefined ? order.isGift : (order.is_gift !== undefined ? order.is_gift : false),
+      giftDetails: order.giftDetails || order.gift_details || null
+    };
 
     console.log(`Processing ${type} email for:`, order.id);
 

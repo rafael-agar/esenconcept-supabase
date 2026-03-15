@@ -98,6 +98,12 @@ export default function Checkout() {
     }
   };
 
+  useEffect(() => {
+    if (isSuccess) {
+      window.scrollTo(0, 0);
+    }
+  }, [isSuccess]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
@@ -206,7 +212,9 @@ export default function Checkout() {
               // in case the deployment didn't go through correctly.
               total_amount: finalTotal, 
               shipping_cost: shippingCost,
-              shipping_address: `${formData.address}, ${formData.city}, ${formData.postalCode}`,
+              shipping_address: formData.address,
+              shipping_city: formData.city,
+              shipping_postal_code: formData.postalCode,
               payment_method: paymentMethod,
               is_gift: formData.isGift,
               gift_details: formData.isGift ? {
@@ -215,12 +223,18 @@ export default function Checkout() {
               } : undefined,
               payment_details: {
                 referenceNumber: formData.referenceNumber,
-                bank: formData.bank
+                bank: formData.bank,
+                depositorName: formData.depositorName,
+                depositorId: formData.depositorId
               },
               
               // Ensure camelCase properties are also present and correct
               total: finalTotal,
               shippingCost: shippingCost,
+              discountAmount: discountAmount,
+              saleDiscount: saleDiscount,
+              couponCode: appliedCoupon?.code,
+              couponDiscount: appliedCoupon?.discountPercentage,
               
               user_email: formData.email,
               user_name: `${formData.firstName} ${formData.lastName}`,
@@ -308,7 +322,7 @@ export default function Checkout() {
         </motion.div>
         <h1 className="text-3xl font-serif font-bold mb-4">¡Gracias por tu compra!</h1>
         <p className="text-gray-500 mb-8">
-          Hemos recibido tu pedido correctamente. Te hemos enviado un correo electrónico con los detalles de tu compra. En las próximas 24 horas nos estaremos comunicando contigo mientras confirmamos tu pago.
+          Hemos recibido tu pedido correctamente. Te hemos enviado un correo electrónico con los detalles de tu compra. En las próximas horas nos estaremos comunicando contigo mientras confirmamos tu pago.
         </p>
         <button 
           onClick={() => navigate('/')}

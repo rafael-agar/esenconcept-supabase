@@ -710,7 +710,7 @@ export default function Admin() {
     let message = '';
 
     if (pendingOrderUpdate.newStatus === 'Pago Aprobado') {
-      message = `Hola *${pendingOrderUpdate.customerName}*, ¡tu pago ha sido aprobado! ✨\n\nEn las próximas 24 horas estaremos realizando el envío de tu pedido:\n\n${productsList}\n\nTe notificaremos con tu respectiva guía de seguimiento apenas sea despachado. 📦\n\n¡Gracias por preferirnos! 🙏`;
+      message = `Hola *${pendingOrderUpdate.customerName}*, ¡tu pago ha sido aprobado! ✨\n\nEn las próximas horas estaremos realizando el envío de tu pedido:\n\n${productsList}\n\nTe notificaremos con tu respectiva guía de seguimiento apenas sea despachado. 📦\n\n¡Gracias por preferirnos! 🙏`;
     } else if (pendingOrderUpdate.newStatus === 'Enviado') {
       message = `Hola *${pendingOrderUpdate.customerName}*, ¡tu pedido ya va en camino! 🚚\n\nTu número de guía es: *${pendingOrderUpdate.trackingNumber}*\n\nProductos enviados:\n${productsList}\n\n¡Gracias por tu compra! ✨`;
     }
