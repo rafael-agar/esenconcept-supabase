@@ -54,13 +54,13 @@ export default function Checkout() {
     address: '',
     city: '',
     postalCode: '',
+    status: '',
     depositorName: '',
     depositorId: '',
     bank: '',
     referenceNumber: '',
     isGift: false,
     recipientName: '',
-    recipientEmail: '',
     giftMessage: ''
   });
 
@@ -111,7 +111,6 @@ export default function Checkout() {
         isGift: formData.isGift,
         giftDetails: formData.isGift ? {
           recipientName: formData.recipientName,
-          recipientEmail: formData.recipientEmail,
           message: formData.giftMessage
         } : undefined,
         shippingAddress: `${formData.address}, ${formData.city}, ${formData.postalCode}`,
@@ -212,7 +211,6 @@ export default function Checkout() {
               is_gift: formData.isGift,
               gift_details: formData.isGift ? {
                 recipientName: formData.recipientName,
-                recipientEmail: formData.recipientEmail,
                 message: formData.giftMessage
               } : undefined,
               payment_details: {
@@ -310,7 +308,7 @@ export default function Checkout() {
         </motion.div>
         <h1 className="text-3xl font-serif font-bold mb-4">¡Gracias por tu compra!</h1>
         <p className="text-gray-500 mb-8">
-          Hemos recibido tu pedido correctamente. En las próximas 24 horas nos estaremos comunicando contigo mientras confirmamos tu pago.
+          Hemos recibido tu pedido correctamente. Te hemos enviado un correo electrónico con los detalles de tu compra. En las próximas 24 horas nos estaremos comunicando contigo mientras confirmamos tu pago.
         </p>
         <button 
           onClick={() => navigate('/')}
@@ -443,7 +441,7 @@ export default function Checkout() {
                     <p className="text-sm text-gray-500 italic">
                       Agrega una dedicatoria personalizada y los datos de la persona que recibirá el regalo.
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <div>
                         <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Nombre del Destinatario</label>
                         <input 
@@ -454,18 +452,6 @@ export default function Checkout() {
                           onChange={handleInputChange}
                           className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-black transition-colors"
                           placeholder="¿Para quién es?"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Email del Destinatario</label>
-                        <input 
-                          type="email" 
-                          name="recipientEmail"
-                          required={formData.isGift}
-                          value={formData.recipientEmail}
-                          onChange={handleInputChange}
-                          className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-black transition-colors"
-                          placeholder="email@destinatario.com"
                         />
                       </div>
                     </div>

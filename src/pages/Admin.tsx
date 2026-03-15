@@ -49,7 +49,7 @@ export default function Admin() {
     orderId: string;
     newStatus: string;
     customerName: string;
-    products: string[];
+    items: any[];
     phoneNumber?: string;
     trackingNumber?: string;
   } | null>(null);
@@ -644,7 +644,7 @@ export default function Admin() {
           orderId,
           newStatus,
           customerName: order.customer?.full_name || 'Cliente',
-          products: order.items.map((i: any) => i.name),
+          items: order.items,
           phoneNumber: order.customer?.phone
         });
         setIsConfirmModalOpen(true);
@@ -659,7 +659,7 @@ export default function Admin() {
           orderId,
           newStatus,
           customerName: order.customer?.full_name || 'Cliente',
-          products: order.items.map((i: any) => i.name),
+          items: order.items,
           phoneNumber: order.customer?.phone,
           trackingNumber: ''
         });
@@ -702,21 +702,43 @@ export default function Admin() {
     setIsConfirmModalOpen(false);
 
     // WhatsApp Logic
-    const productsList = pendingOrderUpdate.products.join(', ');
+    const productsList = pendingOrderUpdate.items.map((item: any) => {
+      const variant = [item.color, item.size].filter(Boolean).join(' / ');
+      return `- ${item.name}${variant ? ` (${variant})` : ''} x${item.quantity}`;
+    }).join('\n');
+
     let message = '';
 
     if (pendingOrderUpdate.newStatus === 'Pago Aprobado') {
-      message = `Hola ${pendingOrderUpdate.customerName}, tu pago ha sido aprobado. En las próximas 24 horas será enviado ${productsList} con su respectiva guía.`;
+      message = `Hola *${pendingOrderUpdate.customerName}*, ¡tu pago ha sido aprobado! ✨\n\nEn las próximas 24 horas estaremos realizando el envío de tu pedido:\n\n${productsList}\n\nTe notificaremos con tu respectiva guía de seguimiento apenas sea despachado. 📦\n\n¡Gracias por preferirnos! 🙏`;
     } else if (pendingOrderUpdate.newStatus === 'Enviado') {
-      message = `Hola ${pendingOrderUpdate.customerName}, tu pedido ha sido enviado. Tu número de guía es: ${pendingOrderUpdate.trackingNumber}. Productos: ${productsList}.`;
+      message = `Hola *${pendingOrderUpdate.customerName}*, ¡tu pedido ya va en camino! 🚚\n\nTu número de guía es: *${pendingOrderUpdate.trackingNumber}*\n\nProductos enviados:\n${productsList}\n\n¡Gracias por tu compra! ✨`;
     }
 
     if (message) {
-      const encodedMessage = encodeURIComponent(message);
-      const storePhone = '584226413853';
-      const whatsappUrl = `https://wa.me/${storePhone}?text=${encodedMessage}`;
-
-      window.open(whatsappUrl, '_blank');
+      const customerPhone = pendingOrderUpdate.phoneNumber;
+      
+      if (!customerPhone) {
+        showToast('El cliente no tiene un número de teléfono registrado', 'error');
+      } else {
+        // Clean phone number (remove non-digits)
+        let cleanPhone = customerPhone.replace(/\D/g, '');
+        
+        // Basic formatting for WhatsApp (assuming Venezuela 58 if no country code)
+        if (cleanPhone.startsWith('0')) {
+          cleanPhone = '58' + cleanPhone.substring(1);
+        } else if (cleanPhone.length === 10) {
+          cleanPhone = '58' + cleanPhone;
+        }
+        
+        const params = new URLSearchParams({
+          phone: cleanPhone,
+          text: message
+        });
+        
+        const whatsappUrl = `https://api.whatsapp.com/send?${params.toString()}`;
+        window.open(whatsappUrl, '_blank');
+      }
     }
     
     setPendingOrderUpdate(null);
