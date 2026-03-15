@@ -21,7 +21,7 @@ app.use(express.json());
 
 // Email Template Function
 const generateEmailHtml = (order: any, isForAdmin: boolean) => {
-  const { id, items, total_amount, shipping_address, payment_details, created_at } = order;
+  const { id, items, total_amount, shipping_address, payment_details, created_at, shipping_cost } = order;
   const logoUrl = "https://esenconcept.netlify.app/logo.png";
   
   const itemsHtml = items.map((item: any) => `
@@ -96,6 +96,7 @@ const generateEmailHtml = (order: any, isForAdmin: boolean) => {
         </table>
 
         <div class="total">
+          ${shipping_cost ? `<p style="font-size: 14px; font-weight: normal; margin: 0;">Envío: $${shipping_cost.toFixed(2)}</p>` : ''}
           Total: $${total_amount.toFixed(2)}
         </div>
 

@@ -193,8 +193,8 @@ const generateEmailHtml = (order: Order, isCustomer: boolean, type: string = 'ne
             ` : ''}
             <tr>
               <td style="padding: 5px 0; color: #666;">Envío:</td>
-              <td style="padding: 5px 0; text-align: right; font-weight: 500; ${order.shippingCost === 0 ? 'color: #38a169;' : ''}">
-                ${order.shippingCost === 0 ? 'Gratis' : `$${order.shippingCost.toFixed(2)}`}
+              <td style="padding: 5px 0; text-align: right; font-weight: 500;">
+                ${order.shippingCost > 0 ? `$${order.shippingCost.toFixed(2)}` : 'Gratis'}
               </td>
             </tr>
             <tr style="border-top: 2px solid #000;">

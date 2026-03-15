@@ -3436,11 +3436,11 @@ export default function Admin() {
                   <div className="w-64 space-y-2 text-sm">
                     <div className="flex justify-between text-gray-500">
                       <span>Subtotal:</span>
-                      <span>${Number(viewingOrder.subtotal).toFixed(2)}</span>
+                      <span>${(viewingOrder.subtotal || viewingOrder.items?.reduce((acc: number, item: any) => acc + (Number(item.price) * item.quantity), 0) || 0).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-gray-500">
                       <span>Envío:</span>
-                      <span>${Number(viewingOrder.shipping_cost || 0).toFixed(2)}</span>
+                      <span>${Number(viewingOrder.shipping_cost ?? viewingOrder.shippingCost ?? 0).toFixed(2)}</span>
                     </div>
                     {viewingOrder.discount > 0 && (
                       <div className="flex justify-between text-red-500">

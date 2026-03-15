@@ -120,6 +120,7 @@ export default function Checkout() {
           message: formData.giftMessage
         } : undefined,
         shippingAddress: `${formData.address}, ${formData.city}, ${formData.postalCode}`,
+        shippingCost: shippingCost,
         paymentDetails: {
           depositorName: formData.depositorName,
           depositorId: formData.depositorId,

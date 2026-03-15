@@ -26,6 +26,7 @@ export interface Order {
     message: string;
   };
   shippingAddress?: string;
+  shippingCost?: number;
   paymentDetails?: {
     depositorName?: string;
     depositorId?: string;
@@ -99,6 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           isGift: o.is_gift || false,
           giftDetails: o.gift_details || undefined,
           shippingAddress: o.shipping_address,
+          shippingCost: Number(o.shipping_cost || 0),
           paymentDetails: o.payment_details || undefined
         }));
         setOrders(formattedOrders);
@@ -388,6 +390,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           is_gift: orderData.isGift || false,
           gift_details: orderData.giftDetails || null,
           shipping_address: orderData.shippingAddress || user.address || 'Dirección no proporcionada',
+          shipping_cost: orderData.shippingCost || 0,
           payment_details: orderData.paymentDetails || null
         }])
         .select()
@@ -423,6 +426,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           isGift: order.is_gift,
           giftDetails: order.gift_details,
           shippingAddress: order.shipping_address,
+          shippingCost: Number(order.shipping_cost || 0),
           paymentDetails: order.payment_details
         };
         setOrders(prev => [newOrder, ...prev]);
