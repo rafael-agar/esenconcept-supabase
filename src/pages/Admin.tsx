@@ -11,6 +11,7 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import Spinner from '../components/Spinner';
 import AdminDashboard from '../components/AdminDashboard';
 import SocialIcon from '../components/SocialIcon';
+import Pagination from '../components/Pagination';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -53,6 +54,16 @@ export default function Admin() {
     phoneNumber?: string;
     trackingNumber?: string;
   } | null>(null);
+
+  // Pagination state
+  const [orderPage, setOrderPage] = useState(1);
+  const [productPage, setProductPage] = useState(1);
+  const [userPage, setUserPage] = useState(1);
+  const [leadPage, setLeadPage] = useState(1);
+  const [returnPage, setReturnPage] = useState(1);
+  const [categoryPage, setCategoryPage] = useState(1);
+  const [sizePage, setSizePage] = useState(1);
+  const itemsPerPage = 12;
 
   // ... (rest of state)
 
@@ -938,7 +949,7 @@ export default function Admin() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {categories.map(category => (
+            {categories.slice((categoryPage - 1) * itemsPerPage, categoryPage * itemsPerPage).map(category => (
               <tr key={category.id} className="hover:bg-gray-50 transition-colors">
                 <td className="p-4">
                   {editingCategoryId === category.id ? (
@@ -1056,6 +1067,11 @@ export default function Admin() {
             ))}
           </tbody>
         </table>
+        <Pagination 
+          currentPage={categoryPage} 
+          totalPages={Math.ceil(categories.length / itemsPerPage)} 
+          onPageChange={setCategoryPage} 
+        />
       </div>
     </div>
   );
@@ -1667,7 +1683,8 @@ export default function Admin() {
             <Spinner size="xl" />
           </div>
         ) : (
-          <table className="w-full text-left border-collapse">
+          <div>
+            <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
                 <th className="p-4 font-bold">Producto</th>
@@ -1680,7 +1697,7 @@ export default function Admin() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {products.map(product => (
+              {products.slice((productPage - 1) * itemsPerPage, productPage * itemsPerPage).map(product => (
                 <tr key={product.id} className="hover:bg-gray-50 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -2154,6 +2171,14 @@ export default function Admin() {
               )}
             </tbody>
           </table>
+            <div>
+              <Pagination 
+                currentPage={productPage} 
+                totalPages={Math.ceil(products.length / itemsPerPage)} 
+                onPageChange={setProductPage} 
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -2206,7 +2231,7 @@ export default function Admin() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {sizes.map(size => (
+            {sizes.slice((sizePage - 1) * itemsPerPage, sizePage * itemsPerPage).map(size => (
               <tr key={size.id} className="hover:bg-gray-50 transition-colors">
                 {editingSizeId === size.id ? (
                   <>
@@ -2293,6 +2318,11 @@ export default function Admin() {
             )}
           </tbody>
         </table>
+        <Pagination 
+          currentPage={sizePage} 
+          totalPages={Math.ceil(sizes.length / itemsPerPage)} 
+          onPageChange={setSizePage} 
+        />
       </div>
     </div>
   );
@@ -2306,7 +2336,8 @@ export default function Admin() {
             <Spinner size="xl" />
           </div>
         ) : (
-          <table className="w-full text-left border-collapse">
+          <div>
+            <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
                 <th className="p-4 font-bold">ID / Fecha</th>
@@ -2320,7 +2351,7 @@ export default function Admin() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {orders.map(order => (
+              {orders.slice((orderPage - 1) * itemsPerPage, orderPage * itemsPerPage).map(order => (
                 <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                   <td className="p-4 align-top">
                     <div className="flex flex-col">
@@ -2431,6 +2462,14 @@ export default function Admin() {
               )}
             </tbody>
           </table>
+          <div>
+            <Pagination 
+              currentPage={orderPage} 
+              totalPages={Math.ceil(orders.length / itemsPerPage)} 
+              onPageChange={setOrderPage} 
+            />
+          </div>
+          </div>
         )}
       </div>
     </div>
@@ -2696,7 +2735,8 @@ export default function Admin() {
             <Spinner size="xl" />
           </div>
         ) : (
-          <table className="w-full text-left border-collapse">
+          <div>
+            <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
                 <th className="p-4 font-bold">Usuario</th>
@@ -2706,7 +2746,7 @@ export default function Admin() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {users.map(u => (
+              {users.slice((userPage - 1) * itemsPerPage, userPage * itemsPerPage).map(u => (
                 <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -2743,6 +2783,14 @@ export default function Admin() {
               )}
             </tbody>
           </table>
+          <div>
+            <Pagination 
+              currentPage={userPage} 
+              totalPages={Math.ceil(users.length / itemsPerPage)} 
+              onPageChange={setUserPage} 
+            />
+          </div>
+          </div>
         )}
       </div>
     </div>
@@ -2762,7 +2810,8 @@ export default function Admin() {
             <Spinner />
           </div>
         ) : (
-          <table className="w-full text-left border-collapse">
+          <div>
+            <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 text-[10px] uppercase tracking-widest text-gray-400 font-bold">
                 <th className="p-4">Email</th>
@@ -2772,7 +2821,7 @@ export default function Admin() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {leads.map((lead) => (
+              {leads.slice((leadPage - 1) * itemsPerPage, leadPage * itemsPerPage).map((lead) => (
                 <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
                   <td className="p-4 text-sm font-medium">{lead.email}</td>
                   <td className="p-4 text-sm text-gray-600">{lead.whatsapp || '-'}</td>
@@ -2800,13 +2849,21 @@ export default function Admin() {
               ))}
               {leads.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="p-8 text-center text-gray-500">
+                  <td colSpan={4} className="p-8 text-center text-gray-500">
                     No hay leads registrados aún.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          <div>
+            <Pagination 
+              currentPage={leadPage} 
+              totalPages={Math.ceil(leads.length / itemsPerPage)} 
+              onPageChange={setLeadPage} 
+            />
+          </div>
+          </div>
         )}
       </div>
     </div>
@@ -2843,7 +2900,7 @@ export default function Admin() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {returns.map(r => (
+                {returns.slice((returnPage - 1) * itemsPerPage, returnPage * itemsPerPage).map(r => (
                   <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 font-mono text-xs">#{r.order_id.slice(0, 8)}</td>
                     <td className="p-4">
@@ -2882,6 +2939,11 @@ export default function Admin() {
                 )}
               </tbody>
             </table>
+            <Pagination 
+              currentPage={returnPage} 
+              totalPages={Math.ceil(returns.length / itemsPerPage)} 
+              onPageChange={setReturnPage} 
+            />
           </div>
         )}
       </div>
