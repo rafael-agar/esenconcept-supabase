@@ -759,9 +759,9 @@ export default function Admin() {
       setNewCategoryDescription('');
       setNewCategoryImage(null);
       setNewCategoryImageUrl('');
-      showToast('Categoría creada correctamente', 'success');
+      showToast('Cápsula creada correctamente', 'success');
     } catch (error) {
-      showToast('Error al crear categoría', 'error');
+      showToast('Error al crear cápsula', 'error');
     } finally {
       setIsUploading(false);
     }
@@ -778,9 +778,9 @@ export default function Admin() {
       }, editCategoryImage || undefined);
       setEditingCategoryId(null);
       setEditCategoryImageUrl('');
-      showToast('Categoría actualizada correctamente', 'success');
+      showToast('Cápsula actualizada correctamente', 'success');
     } catch (error) {
-      showToast('Error al actualizar categoría', 'error');
+      showToast('Error al actualizar cápsula', 'error');
     } finally {
       setIsUploading(false);
     }
@@ -850,19 +850,19 @@ export default function Admin() {
   const renderCategories = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-serif font-bold">Gestión de Categorías</h2>
+        <h2 className="text-2xl font-serif font-bold">Gestión de Cápsulas</h2>
         <button 
           onClick={() => setIsAddingCategory(!isAddingCategory)}
           className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold uppercase flex items-center gap-2 hover:bg-gray-800 transition-colors"
         >
           {isAddingCategory ? <XCircle size={18} /> : <Plus size={18} />}
-          {isAddingCategory ? 'Cancelar' : 'Nueva Categoría'}
+          {isAddingCategory ? 'Cancelar' : 'Nueva Cápsula'}
         </button>
       </div>
 
       {isAddingCategory && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
-          <h3 className="text-lg font-bold mb-4">Agregar Nueva Categoría</h3>
+          <h3 className="text-lg font-bold mb-4">Agregar Nueva Cápsula</h3>
           <form onSubmit={handleAddCategory} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Nombre</label>
@@ -920,7 +920,7 @@ export default function Admin() {
                 disabled={isUploading}
                 className="bg-black text-white px-8 py-2 rounded text-sm font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors disabled:bg-gray-400"
               >
-                {isUploading ? 'Creando...' : 'Crear Categoría'}
+                {isUploading ? 'Creando...' : 'Crear Cápsula'}
               </button>
             </div>
           </form>
@@ -1029,15 +1029,15 @@ export default function Admin() {
                         </button>
                         <button 
                           onClick={() => openConfirmModal(
-                            'Eliminar Categoría',
-                            '¿Estás seguro de eliminar esta categoría? Se eliminarán también los productos asociados.',
+                            'Eliminar Cápsula',
+                            '¿Estás seguro de eliminar esta cápsula? Se eliminarán también los productos asociados.',
                             async () => {
                               setIsUploading(true);
                               try {
                                 await deleteCategory(category.id);
-                                showToast('Categoría eliminada correctamente', 'success');
+                                showToast('Cápsula eliminada correctamente', 'success');
                               } catch (error) {
-                                showToast('Error al eliminar categoría', 'error');
+                                showToast('Error al eliminar cápsula', 'error');
                               } finally {
                                 setIsUploading(false);
                               }
@@ -1273,14 +1273,14 @@ export default function Admin() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Categoría</label>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Cápsula</label>
               <select
                 value={newProductCategory}
                 onChange={(e) => setNewProductCategory(e.target.value)}
                 className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:border-black"
                 required
               >
-                <option value="">Selecciona una categoría</option>
+                <option value="">Selecciona una cápsula</option>
                 {categories.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -1706,7 +1706,7 @@ export default function Admin() {
                             onChange={(e) => setEditCategory(e.target.value)}
                             className="border border-gray-300 rounded p-1 text-xs w-full"
                           >
-                            <option value="">Selecciona una categoría</option>
+                            <option value="">Selecciona una cápsula</option>
                             {categories.map(c => (
                               <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
@@ -2955,7 +2955,7 @@ export default function Admin() {
                   activeTab === 'categories' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                <Folder size={18} /> Categorías
+                <Folder size={18} /> Cápsulas
               </button>
               <button
                 onClick={() => {

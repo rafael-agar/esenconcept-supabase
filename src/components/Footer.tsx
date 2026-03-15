@@ -81,7 +81,7 @@ export default function Footer() {
 
           {/* Links 1 - Categories */}
           <div>
-            <h4 className="text-sm font-bold uppercase tracking-widest mb-6">Categorías</h4>
+            <h4 className="text-sm font-bold uppercase tracking-widest mb-6">Cápsulas</h4>
             <ul className="space-y-3 text-sm text-gray-400">
               {categories.map(cat => (
                 <li key={cat.id}>
@@ -95,7 +95,7 @@ export default function Footer() {
                 </li>
               ))}
               {categories.length === 0 && (
-                <li><span className="text-gray-600">Cargando categorías...</span></li>
+                <li><span className="text-gray-600">Cargando cápsulas...</span></li>
               )}
             </ul>
           </div>

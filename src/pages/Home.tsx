@@ -15,7 +15,7 @@ export default function Home() {
       {/* Categories Section */}
       <section className="py-20 w-full overflow-hidden">
         <div className="text-center mb-12 px-4">
-          <h2 className="text-3xl font-serif font-bold mb-4">Categorías</h2>
+          <h2 className="text-3xl font-serif font-bold mb-4">Cápsulas</h2>
           <div className="w-12 h-0.5 bg-black mx-auto"></div>
         </div>
         
