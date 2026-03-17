@@ -9,6 +9,7 @@ interface User {
   email: string;
   phone?: string;
   address?: string;
+  documentId?: string;
   role?: 'customer' | 'admin';
 }
 
@@ -206,6 +207,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: email,
           phone: data.phone || '',
           address: data.address || '',
+          documentId: data.document_id || '',
           role: data.role || 'customer'
         });
       }
@@ -300,6 +302,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email: email,
         phone: phone,
         address: address,
+        documentId: '',
         role: 'customer'
       });
 
@@ -323,6 +326,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       full_name: data.name !== undefined ? data.name : user.name,
       phone: data.phone !== undefined ? data.phone : user.phone,
       address: data.address !== undefined ? data.address : user.address,
+      document_id: data.documentId !== undefined ? data.documentId : user.documentId,
     };
 
     const { error } = await supabase

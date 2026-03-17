@@ -121,6 +121,18 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
       console.log(`Fetched: ${prodsData?.length} products, ${variantsData?.length} variants, ${imagesData?.length} images, ${bundleData?.length || 0} bundle items`);
 
+      // Debug specific product if needed
+      const calmaSet = prodsData?.find(p => p.name.includes('CALMA SET PANT'));
+      if (calmaSet) {
+        const calmaVariants = variantsData?.filter(v => v.product_id === calmaSet.id);
+        console.log('Debug CALMA SET PANT:', {
+          id: calmaSet.id,
+          stock: calmaSet.stock,
+          variantsCount: calmaVariants?.length,
+          variants: calmaVariants?.map(v => ({ size: v.size, color: v.color, stock: v.stock }))
+        });
+      }
+
       let formattedProducts = (prodsData || []).map(p => {
         const productVariants = (variantsData || []).filter(v => v.product_id === p.id);
         const productImages = (imagesData || []).filter(img => img.product_id === p.id);
@@ -284,6 +296,10 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         ? product.variants.reduce((sum, v) => sum + (v.stock || 0), 0)
         : (product.stock || 0);
 
+      const calculatedDamagedStock = product.variants && product.variants.length > 0
+        ? product.variants.reduce((sum, v) => sum + (v.damagedStock || 0), 0)
+        : (product.damagedStock || 0);
+
       // 1. Insert product
       const { data: productData, error: productError } = await supabase
         .from('products')
@@ -295,6 +311,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           care_instructions: product.careInstructions,
           price: product.price,
           stock: calculatedStock,
+          damaged_stock: calculatedDamagedStock,
           image_url: imageUrl,
           category_id: product.categoryId || null,
           is_featured: product.isFeatured || false,
@@ -362,6 +379,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           color_code: v.colorCode,
           size: v.size,
           stock: v.stock,
+          damaged_stock: v.damagedStock || 0,
           price: v.price || null,
           sku: v.sku || null,
           image_url: v.imageUrl || null
@@ -395,6 +413,10 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         ? updatedProduct.variants.reduce((sum, v) => sum + (v.stock || 0), 0)
         : updatedProduct.stock;
 
+      const calculatedDamagedStock = updatedProduct.variants && updatedProduct.variants.length > 0
+        ? updatedProduct.variants.reduce((sum, v) => sum + (v.damagedStock || 0), 0)
+        : updatedProduct.damagedStock;
+
       const slug = updatedProduct.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
       // 1. Update product
@@ -408,6 +430,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
           is_sale: updatedProduct.isSale || false,
           is_new: updatedProduct.isNew || false,
           stock: calculatedStock,
+          damaged_stock: calculatedDamagedStock,
           is_featured: updatedProduct.isFeatured,
           is_active: updatedProduct.isActive !== false,
           description: updatedProduct.description,
@@ -491,34 +514,54 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // 3. Handle variants
-      // For simplicity in this step, we'll delete and re-insert if variants are provided
       if (updatedProduct.variants) {
-        // Delete existing variants
-        await supabase
+        // Get existing variants
+        const { data: existingVariants } = await supabase
           .from('product_variants')
-          .delete()
+          .select('id')
           .eq('product_id', updatedProduct.id);
 
-        // Insert new variants
+        const existingIds = existingVariants?.map(v => v.id) || [];
+        const newIds = updatedProduct.variants.map(v => v.id).filter(Boolean);
+        const idsToDelete = existingIds.filter(id => !newIds.includes(id));
+
+        if (idsToDelete.length > 0) {
+          await supabase
+            .from('product_variants')
+            .delete()
+            .in('id', idsToDelete);
+        }
+
+        // Upsert variants
         if (updatedProduct.variants.length > 0) {
-          const variantsToInsert = updatedProduct.variants.map(v => ({
-            product_id: updatedProduct.id,
-            color: v.color,
-            color_code: v.colorCode,
-            size: v.size,
-            stock: v.stock,
-            price: v.price || null,
-            sku: v.sku || null,
-            image_url: v.imageUrl || null
-          }));
+          const variantsToUpsert = updatedProduct.variants.map(v => {
+            const variant: any = {
+              product_id: updatedProduct.id,
+              color: v.color,
+              color_code: v.colorCode,
+              size: v.size,
+              stock: v.stock,
+              damaged_stock: v.damagedStock || 0,
+              price: v.price || null,
+              sku: v.sku || null,
+              image_url: v.imageUrl || null
+            };
+            if (v.id && !v.id.startsWith('temp-')) {
+              variant.id = v.id;
+            }
+            return variant;
+          });
 
           const { error: variantsError } = await supabase
             .from('product_variants')
-            .insert(variantsToInsert);
+            .upsert(variantsToUpsert);
 
           if (variantsError) throw variantsError;
         }
       }
+      
+      // Update local state immediately for better UX
+      setProducts(prev => prev.map(p => p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p));
       
       await fetchData();
     } catch (error) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useProducts } from '../context/ProductContext';
-import { Package, Users, Tag, Settings, Truck, Edit, Trash2, Plus, CheckCircle, XCircle, Image as ImageIcon, Ruler, Folder, FileText, DollarSign, Eye, X, LayoutDashboard, Share2, Mail, RotateCcw } from 'lucide-react';
+import { Package, Users, Tag, Settings, Truck, Edit, Trash2, Plus, CheckCircle, XCircle, Image as ImageIcon, Ruler, Folder, FileText, DollarSign, Eye, X, LayoutDashboard, Share2, Mail, RotateCcw, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { Toast } from '../components/Toast';
@@ -12,6 +12,7 @@ import Spinner from '../components/Spinner';
 import AdminDashboard from '../components/AdminDashboard';
 import SocialIcon from '../components/SocialIcon';
 import Pagination from '../components/Pagination';
+import ManualOrderModal from '../components/ManualOrderModal';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -23,7 +24,11 @@ export default function Admin() {
     baseShippingCost, setBaseShippingCost,
     socialLinks, updateSocialLinks 
   } = useCart();
-  const { products, categories, sizes, updateProduct, addProduct, deleteProduct, addSize, updateSize, deleteSize, addCategory, updateCategory, deleteCategory, isLoading: productsLoading, processReturn } = useProducts();
+  const { 
+    products, categories, sizes, updateProduct, addProduct, deleteProduct, 
+    addSize, updateSize, deleteSize, addCategory, updateCategory, deleteCategory, 
+    isLoading: productsLoading, processReturn, refreshProducts 
+  } = useProducts();
   
   const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'users' | 'settings' | 'sizes' | 'categories' | 'leads' | 'returns' | 'gallery'>('dashboard');
   const [orders, setOrders] = useState<any[]>([]);
@@ -35,6 +40,7 @@ export default function Admin() {
     item: any;
   } | null>(null);
   const [manualReturnOpen, setManualReturnOpen] = useState(false);
+  const [isManualOrderModalOpen, setIsManualOrderModalOpen] = useState(false);
   const [returnReason, setReturnReason] = useState<'voluntary' | 'defect'>('voluntary');
   const [exchangeProductId, setExchangeProductId] = useState<string>('');
   const [exchangeVariantId, setExchangeVariantId] = useState<string>('');
@@ -181,13 +187,13 @@ export default function Admin() {
   const [editAdditionalImages, setEditAdditionalImages] = useState<File[]>([]);
   const [editAdditionalImageUrls, setEditAdditionalImageUrls] = useState<string[]>([]);
   const [editExistingImages, setEditExistingImages] = useState<string[]>([]);
-  const [editVariants, setEditVariants] = useState<{ id?: string, color: string, colorCode: string, size: string, stock: number }[]>([]);
+  const [editVariants, setEditVariants] = useState<{ id?: string, color: string, colorCode: string, size: string, stock: number, damagedStock?: number }[]>([]);
   const [editIsBundle, setEditIsBundle] = useState(false);
   const [editBundleItems, setEditBundleItems] = useState<{ productId: string, variantId?: string, quantity: number }[]>([]);
   const [editReviewsCount, setEditReviewsCount] = useState<string>('0');
 
   const addVariantToEditProduct = () => {
-    setEditVariants([...editVariants, { color: '', colorCode: '#000000', size: sizes[0]?.name || '', stock: 0 }]);
+    setEditVariants([...editVariants, { color: '', colorCode: '#000000', size: sizes[0]?.name || '', stock: 0, damagedStock: 0 }]);
   };
 
   const removeVariantFromEditProduct = (index: number) => {
@@ -216,7 +222,7 @@ export default function Admin() {
   const [newProductImageUrl, setNewProductImageUrl] = useState<string>('');
   const [newProductAdditionalImages, setNewProductAdditionalImages] = useState<File[]>([]);
   const [newProductAdditionalImageUrls, setNewProductAdditionalImageUrls] = useState<string[]>([]);
-  const [newProductVariants, setNewProductVariants] = useState<{ color: string, colorCode: string, size: string, stock: number }[]>([]);
+  const [newProductVariants, setNewProductVariants] = useState<{ color: string, colorCode: string, size: string, stock: number, damagedStock?: number }[]>([]);
   const [newProductIsBundle, setNewProductIsBundle] = useState(false);
   const [newProductBundleItems, setNewProductBundleItems] = useState<{ productId: string, variantId?: string, quantity: number }[]>([]);
   const [newProductReviewsCount, setNewProductReviewsCount] = useState<string>('0');
@@ -368,7 +374,7 @@ export default function Admin() {
   };
 
   const addVariantToNewProduct = () => {
-    setNewProductVariants([...newProductVariants, { color: '', colorCode: '#000000', size: sizes[0]?.name || '', stock: 0 }]);
+    setNewProductVariants([...newProductVariants, { color: '', colorCode: '#000000', size: sizes[0]?.name || '', stock: 0, damagedStock: 0 }]);
   };
 
   const removeVariantFromNewProduct = (index: number) => {
@@ -1166,11 +1172,8 @@ export default function Admin() {
     setEditAdditionalImageUrls([]);
     setEditExistingImages(product.images || []);
     setEditVariants(product.variants?.map((v: any) => ({
-      id: v.id,
-      color: v.color,
-      colorCode: v.colorCode || '#000000',
-      size: v.size,
-      stock: v.stock
+      ...v,
+      colorCode: v.colorCode || '#000000'
     })) || []);
   };
 
@@ -1563,6 +1566,16 @@ export default function Admin() {
                         min="0"
                       />
                     </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-red-400 mb-1">Dañado</label>
+                      <input 
+                        type="number" 
+                        value={variant.damagedStock || 0}
+                        onChange={(e) => updateNewProductVariant(index, 'damagedStock', Number(e.target.value))}
+                        className="w-full border border-gray-300 p-1.5 rounded text-sm focus:outline-none focus:border-black text-red-600"
+                        min="0"
+                      />
+                    </div>
                     <div className="flex justify-end">
                       <button 
                         type="button"
@@ -1800,6 +1813,14 @@ export default function Admin() {
                                     onChange={(e) => updateEditProductVariant(i, 'stock', Number(e.target.value))}
                                     placeholder="Stock"
                                     className="w-12 border border-gray-300 p-1 rounded text-[10px]"
+                                  />
+                                  <input 
+                                    type="number" 
+                                    value={v.damagedStock || 0}
+                                    onChange={(e) => updateEditProductVariant(i, 'damagedStock', Number(e.target.value))}
+                                    placeholder="Dañado"
+                                    className="w-12 border border-gray-300 p-1 rounded text-[10px] text-red-600"
+                                    title="Stock Dañado"
                                   />
                                   <button onClick={() => removeVariantFromEditProduct(i)} className="text-red-500 ml-auto">
                                     <Trash2 size={12} />
@@ -2329,7 +2350,16 @@ export default function Admin() {
 
   const renderOrders = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-serif font-bold mb-6">Gestión de Pedidos</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-serif font-bold">Gestión de Pedidos</h2>
+        <button 
+          onClick={() => setIsManualOrderModalOpen(true)}
+          className="bg-black text-white px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors flex items-center gap-2"
+        >
+          <Plus size={16} />
+          Orden Manual
+        </button>
+      </div>
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {ordersLoading ? (
           <div className="p-12 flex justify-center">
@@ -2740,7 +2770,10 @@ export default function Admin() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
                 <th className="p-4 font-bold">Usuario</th>
+                <th className="p-4 font-bold">Cédula</th>
                 <th className="p-4 font-bold">Email</th>
+                <th className="p-4 font-bold">Teléfono</th>
+                <th className="p-4 font-bold">Dirección</th>
                 <th className="p-4 font-bold">Rol</th>
                 <th className="p-4 font-bold">Fecha Registro</th>
               </tr>
@@ -2761,7 +2794,28 @@ export default function Admin() {
                       )}
                     </div>
                   </td>
+                  <td className="p-4 text-sm text-gray-600 font-mono">{u.document_id || 'N/A'}</td>
                   <td className="p-4 text-sm text-gray-600">{u.email || 'Sin email'}</td>
+                  <td className="p-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <span>{u.phone || 'N/A'}</span>
+                      {u.phone && (
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(u.phone);
+                            setToast({ visible: true, message: 'Teléfono copiado', type: 'success' });
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded transition-colors text-gray-400 hover:text-black"
+                          title="Copiar teléfono"
+                        >
+                          <Copy size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-4 text-sm text-gray-500 max-w-[200px] truncate" title={u.address}>
+                    {u.address || 'N/A'}
+                  </td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
@@ -2776,7 +2830,7 @@ export default function Admin() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-gray-500">
+                  <td colSpan={7} className="p-8 text-center text-gray-500">
                     No hay usuarios registrados.
                   </td>
                 </tr>
@@ -3089,6 +3143,17 @@ export default function Admin() {
         />
       )}
       
+      <ManualOrderModal 
+        isOpen={isManualOrderModalOpen}
+        onClose={() => setIsManualOrderModalOpen(false)}
+        onSuccess={() => {
+          fetchAllOrders();
+          refreshProducts(); // Refresh products to show updated stock
+          setToast({ visible: true, message: 'Orden manual creada exitosamente', type: 'success' });
+        }}
+        products={products}
+      />
+
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         onClose={closeConfirmModal}

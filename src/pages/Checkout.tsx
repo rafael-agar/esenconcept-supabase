@@ -11,7 +11,7 @@ import FreeShippingProgress from '../components/FreeShippingProgress';
 
 export default function Checkout() {
   const { cart, cartTotal, cartSubtotal, saleDiscount, clearCart, shippingCost, finalTotal, appliedCoupon, discountAmount, applyCoupon, removeCoupon } = useCart();
-  const { user, isAuthenticated, addOrder } = useAuth();
+  const { user, isAuthenticated, addOrder, updateProfile } = useAuth();
   const { products } = useProducts();
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,6 +21,22 @@ export default function Checkout() {
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchRate = async () => {
+      try {
+        const response = await fetch('https://tasa-bcv-seven.vercel.app/api/rates/latest');
+        const data = await response.json();
+        if (data.success && data.data && data.data.usd) {
+          setExchangeRate(data.data.usd);
+        }
+      } catch (error) {
+        console.error('Error fetching exchange rate:', error);
+      }
+    };
+    fetchRate();
+  }, []);
 
   const copyToClipboard = (text: string, fieldId: string) => {
     navigator.clipboard.writeText(text);
@@ -51,6 +67,7 @@ export default function Checkout() {
     email: '',
     firstName: '',
     lastName: '',
+    documentId: '',
     address: '',
     city: '',
     postalCode: '',
@@ -74,6 +91,7 @@ export default function Checkout() {
         email: user.email,
         firstName: user.name.split(' ')[0] || '',
         lastName: user.name.split(' ').slice(1).join(' ') || '',
+        documentId: user.documentId || '',
         address: user.address || ''
       }));
     }
@@ -109,6 +127,15 @@ export default function Checkout() {
     setIsProcessing(true);
     
     try {
+      // Update profile if documentId is missing or different
+      if (user && (!user.documentId || user.documentId !== formData.documentId)) {
+        try {
+          await updateProfile({ documentId: formData.documentId });
+        } catch (err) {
+          console.error('Failed to update profile documentId:', err);
+        }
+      }
+
       // Add order to history in Supabase
       const newOrder = await addOrder({
         total: finalTotal,
@@ -392,6 +419,18 @@ export default function Checkout() {
                       value={formData.lastName}
                       onChange={handleInputChange}
                       className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-black transition-colors"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Cédula / ID</label>
+                    <input 
+                      type="text" 
+                      name="documentId"
+                      required
+                      value={formData.documentId}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:border-black transition-colors"
+                      placeholder="V-12345678 / E-87654321"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -787,7 +826,22 @@ export default function Checkout() {
                 </div>
                 <div className="flex justify-between text-lg font-bold border-t border-gray-100 pt-3">
                   <span>Total</span>
-                  <span>${finalTotal.toFixed(2)}</span>
+                  <div className="text-right">
+                    <div>${finalTotal.toFixed(2)}</div>
+                    {exchangeRate && (
+                      <div className="text-sm font-medium text-gray-500 mt-1 flex items-center justify-end gap-2">
+                        <span>Bs. {(finalTotal * exchangeRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <button 
+                          type="button"
+                          onClick={() => copyToClipboard((finalTotal * exchangeRate).toFixed(2), 'bs-total')}
+                          className="p-1 hover:bg-gray-100 rounded transition-colors text-gray-400 hover:text-black"
+                          title="Copiar monto en Bs."
+                        >
+                          {copiedField === 'bs-total' ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -21,13 +21,13 @@ begin
     -- 1. Actualizar stock en product_variants si se proporciona variantId
     if v_variant_id is not null then
       update product_variants
-      set stock = stock - v_quantity
+      set stock = greatest(0, stock - v_quantity)
       where id = v_variant_id;
     -- 2. Si no hay variantId pero hay color/talla (retrocompatibilidad)
     elsif item->>'selectedColor' is not null and item->>'selectedColor' <> '' 
           and item->>'selectedSize' is not null and item->>'selectedSize' <> '' then
       update product_variants
-      set stock = stock - v_quantity
+      set stock = greatest(0, stock - v_quantity)
       where product_id = v_product_id
       and color = item->>'selectedColor'
       and size = item->>'selectedSize';
@@ -36,8 +36,9 @@ begin
     -- 3. Actualizar stock general en products
     -- Importante: Si el producto tiene variantes, el stock total se recalcula en el frontend,
     -- pero actualizamos la tabla products por consistencia.
+    -- Usamos greatest(0, ...) para evitar errores de restricción de stock negativo
     update products
-    set stock = stock - v_quantity
+    set stock = greatest(0, stock - v_quantity)
     where id = v_product_id;
     
   end loop;

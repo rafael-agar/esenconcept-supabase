@@ -16,7 +16,8 @@ export default function Profile() {
     name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    documentId: ''
   });
   
   const activeTab = (searchParams.get('tab') as 'profile' | 'orders' | 'favorites') || 'profile';
@@ -31,7 +32,8 @@ export default function Profile() {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        address: user.address || ''
+        address: user.address || '',
+        documentId: user.documentId || ''
       });
     }
   }, [user]);
@@ -103,6 +105,17 @@ export default function Profile() {
                   className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:border-black"
                 />
               </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Cédula / ID</label>
+                <input
+                  type="text"
+                  name="documentId"
+                  value={editForm.documentId}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 p-2 rounded-lg focus:outline-none focus:border-black"
+                  placeholder="V-12345678"
+                />
+              </div>
             </div>
           </div>
 
@@ -149,6 +162,10 @@ export default function Profile() {
               <div>
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Teléfono</label>
                 <p className="text-gray-900 font-medium">{user.phone || 'No registrado'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Cédula / ID</label>
+                <p className="text-gray-900 font-medium">{user.documentId || 'No registrada'}</p>
               </div>
             </div>
           </div>
