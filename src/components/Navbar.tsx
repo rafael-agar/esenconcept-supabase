@@ -99,7 +99,7 @@ export default function Navbar() {
                 <button 
                   className={`flex items-center text-sm font-medium transition-colors uppercase tracking-wide focus:outline-none ${isTransparent ? 'text-white/80 hover:text-white' : 'text-gray-700 hover:text-black'}`}
                 >
-                  Cápsulas <ChevronDown size={14} className="ml-1" />
+                  Categorías <ChevronDown size={14} className="ml-1" />
                 </button>
                 
                 <AnimatePresence>
@@ -229,7 +229,7 @@ export default function Navbar() {
                 <Link to="/shop" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50">TIENDA</Link>
                 
                 <div className="px-3 py-2">
-                  <span className="block text-base font-medium text-gray-900 mb-2">CÁPSULAS</span>
+                  <span className="block text-base font-medium text-gray-900 mb-2">Categorías</span>
                   <div className="pl-4 space-y-2 border-l-2 border-gray-100">
                     {categories.map((category) => (
                       <Link 
