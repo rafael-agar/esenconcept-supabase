@@ -106,8 +106,8 @@ export default function ProductDetail() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-20">
           <div className="space-y-4">
             <div className="aspect-[3/4] bg-gray-200 animate-pulse rounded"></div>
-            <div className="grid grid-cols-5 gap-4">
-              {Array.from({ length: 5 }).map((_, i) => (
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="aspect-square bg-gray-200 animate-pulse rounded"></div>
               ))}
             </div>
@@ -245,7 +245,7 @@ export default function ProductDetail() {
               />
             </button>
           </div>
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-4">
             {product.images && product.images.length > 0 ? (
               product.images.map((img, index) => (
                 <div 

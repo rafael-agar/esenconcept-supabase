@@ -185,7 +185,7 @@ export default function Admin() {
   const [editProductImage, setEditProductImage] = useState<File | null>(null);
   const [editImageUrl, setEditImageUrl] = useState<string>('');
   const [editAdditionalImages, setEditAdditionalImages] = useState<File[]>([]);
-  const [editAdditionalImageUrls, setEditAdditionalImageUrls] = useState<string[]>([]);
+  const [editAdditionalImageUrls, setEditAdditionalImageUrls] = useState<string[] | null>(null);
   const [editExistingImages, setEditExistingImages] = useState<string[]>([]);
   const [editVariants, setEditVariants] = useState<{ id?: string, color: string, colorCode: string, size: string, stock: number, damagedStock?: number }[]>([]);
   const [editIsBundle, setEditIsBundle] = useState(false);
@@ -236,7 +236,7 @@ export default function Admin() {
   const [imagePickerMultiple, setImagePickerMultiple] = useState(false);
   const [imagePickerMultipleCallback, setImagePickerMultipleCallback] = useState<((urls: string[]) => void) | null>(null);
   const [selectedGalleryImages, setSelectedGalleryImages] = useState<string[]>([]);
-  const [imagePickerMaxSelection, setImagePickerMaxSelection] = useState<number>(5);
+  const [imagePickerMaxSelection, setImagePickerMaxSelection] = useState<number>(8);
 
   const fetchGalleryImages = async () => {
     setGalleryLoading(true);
@@ -320,7 +320,7 @@ export default function Admin() {
     if (galleryImages.length === 0) fetchGalleryImages();
   };
 
-  const openImagePickerMultiple = (callback: (urls: string[]) => void, initialSelection: string[] = [], maxSelection: number = 5) => {
+  const openImagePickerMultiple = (callback: (urls: string[]) => void, initialSelection: string[] = [], maxSelection: number = 8) => {
     setImagePickerMultiple(true);
     setImagePickerMultipleCallback(() => callback);
     setSelectedGalleryImages(initialSelection);
@@ -1169,7 +1169,7 @@ export default function Admin() {
     setEditProductImage(null);
     setEditImageUrl('');
     setEditAdditionalImages([]);
-    setEditAdditionalImageUrls([]);
+    setEditAdditionalImageUrls(null);
     setEditExistingImages(product.images || []);
     setEditVariants(product.variants?.map((v: any) => ({
       ...v,
@@ -1199,10 +1199,10 @@ export default function Admin() {
         bundleItems: editIsBundle ? editBundleItems : [],
         variants: editVariants as any,
         image: editImageUrl || product.image, // Use new gallery URL if selected, otherwise keep existing
-      }, editProductImage || undefined, editAdditionalImages.length > 0 ? editAdditionalImages : undefined, editAdditionalImageUrls.length > 0 ? editAdditionalImageUrls : undefined);
+      }, editProductImage || undefined, editAdditionalImages.length > 0 ? editAdditionalImages : undefined, editAdditionalImageUrls !== null ? editAdditionalImageUrls : undefined);
       setEditingProductId(null);
       setEditImageUrl('');
-      setEditAdditionalImageUrls([]);
+      setEditAdditionalImageUrls(null);
       showToast('Producto actualizado correctamente', 'success');
     } catch (error) {
       showToast('Error al actualizar producto', 'error');
@@ -1625,7 +1625,7 @@ export default function Admin() {
               )}
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Imágenes Adicionales (Máx. 5)</label>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Imágenes Adicionales (Máx. 8)</label>
               <div className="flex gap-2 items-center">
                 <input 
                   type="file" 
@@ -1633,7 +1633,7 @@ export default function Admin() {
                   multiple
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
-                    setNewProductAdditionalImages(files.slice(0, 5));
+                    setNewProductAdditionalImages(files.slice(0, 8));
                     if (files.length > 0) setNewProductAdditionalImageUrls([]);
                   }}
                   className="flex-1 border border-gray-300 p-2 rounded focus:outline-none focus:border-black file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
@@ -1642,13 +1642,13 @@ export default function Admin() {
                 <button 
                   type="button"
                   onClick={() => openImagePickerMultiple((urls) => {
-                    if (urls.length > 5) {
-                      showToast('Máximo 5 imágenes adicionales', 'error');
+                    if (urls.length > 8) {
+                      showToast('Máximo 8 imágenes adicionales', 'error');
                       return;
                     }
                     setNewProductAdditionalImageUrls(urls);
                     setNewProductAdditionalImages([]);
-                  }, newProductAdditionalImageUrls, 5)}
+                  }, newProductAdditionalImageUrls, 8)}
                   className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium flex items-center gap-2"
                 >
                   <ImageIcon size={16} /> Galería
@@ -1929,7 +1929,7 @@ export default function Admin() {
                             )}
                           </div>
                           <div className="mt-2">
-                            <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Imágenes Adicionales (Reemplaza todas)</label>
+                            <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Imágenes Adicionales (Máx. 8 - Reemplaza todas)</label>
                             <div className="flex gap-2 items-center">
                               <input 
                                 type="file" 
@@ -1937,8 +1937,8 @@ export default function Admin() {
                                 multiple
                                 onChange={(e) => {
                                   const files = Array.from(e.target.files || []);
-                                  setEditAdditionalImages(files.slice(0, 5));
-                                  if (files.length > 0) setEditAdditionalImageUrls([]);
+                                  setEditAdditionalImages(files.slice(0, 8));
+                                  if (files.length > 0) setEditAdditionalImageUrls(null);
                                 }}
                                 className="flex-1 text-[10px] border border-gray-300 rounded p-1"
                               />
@@ -1946,22 +1946,35 @@ export default function Admin() {
                               <button 
                                 type="button"
                                 onClick={() => openImagePickerMultiple((urls) => {
-                                  if (urls.length > 5) {
-                                    showToast('Máximo 5 imágenes adicionales', 'error');
+                                  if (urls.length > 8) {
+                                    showToast('Máximo 8 imágenes adicionales', 'error');
                                     return;
                                   }
                                   setEditAdditionalImageUrls(urls);
                                   setEditAdditionalImages([]);
-                                }, editAdditionalImageUrls.length > 0 ? editAdditionalImageUrls : editExistingImages, 5)}
+                                }, editAdditionalImageUrls !== null ? editAdditionalImageUrls : editExistingImages, 8)}
                                 className="bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors text-[10px] font-medium flex items-center gap-1"
                               >
                                 <ImageIcon size={12} /> Galería
                               </button>
                             </div>
-                            {editExistingImages.length > 0 && editAdditionalImages.length === 0 && editAdditionalImageUrls.length === 0 && (
-                              <div className="flex gap-1 mt-1">
+                            {editExistingImages.length > 0 && editAdditionalImages.length === 0 && editAdditionalImageUrls === null && (
+                              <div className="flex gap-1 mt-1 flex-wrap">
                                 {editExistingImages.map((img, i) => (
-                                  <img key={i} src={img} alt="" className="w-6 h-6 object-cover rounded" />
+                                  <div key={i} className="relative group">
+                                    <img src={img} alt="" className="w-8 h-8 object-cover rounded border border-gray-200" referrerPolicy="no-referrer" />
+                                    <button 
+                                      type="button" 
+                                      onClick={() => {
+                                        const newUrls = editExistingImages.filter((_, index) => index !== i);
+                                        setEditExistingImages(newUrls);
+                                        setEditAdditionalImageUrls(newUrls);
+                                      }}
+                                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <X size={8} />
+                                    </button>
+                                  </div>
                                 ))}
                               </div>
                             )}
@@ -1972,12 +1985,24 @@ export default function Admin() {
                                 ))}
                               </div>
                             )}
-                            {editAdditionalImageUrls.length > 0 && (
+                            {editAdditionalImageUrls !== null && (
                               <div className="flex gap-1 mt-1 flex-wrap">
                                 {editAdditionalImageUrls.map((url, i) => (
-                                  <img key={i} src={url} alt="" className="w-6 h-6 object-cover rounded border border-gray-200" referrerPolicy="no-referrer" />
+                                  <div key={i} className="relative group">
+                                    <img src={url} alt="" className="w-8 h-8 object-cover rounded border border-gray-200" referrerPolicy="no-referrer" />
+                                    <button 
+                                      type="button" 
+                                      onClick={() => {
+                                        const newUrls = editAdditionalImageUrls.filter((_, index) => index !== i);
+                                        setEditAdditionalImageUrls(newUrls);
+                                      }}
+                                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <X size={8} />
+                                    </button>
+                                  </div>
                                 ))}
-                                <button type="button" onClick={() => setEditAdditionalImageUrls([])} className="text-red-500 hover:text-red-700 flex items-center text-[10px] ml-1"><X size={12} /> Quitar</button>
+                                <button type="button" onClick={() => setEditAdditionalImageUrls(null)} className="text-red-500 hover:text-red-700 flex items-center text-[10px] ml-1"><X size={12} /> Cancelar</button>
                               </div>
                             )}
                           </div>

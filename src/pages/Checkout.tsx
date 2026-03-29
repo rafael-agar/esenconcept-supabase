@@ -26,10 +26,10 @@ export default function Checkout() {
   useEffect(() => {
     const fetchRate = async () => {
       try {
-        const response = await fetch('https://tasa-bcv-seven.vercel.app/api/rates/latest');
+        const response = await fetch('https://tasa-bcv-yz4g.onrender.com/api/rates/latest');
         const data = await response.json();
-        if (data.success && data.data && data.data.usd) {
-          setExchangeRate(data.data.usd);
+        if (data.success && data.data && data.data.eur) {
+          setExchangeRate(data.data.eur);
         }
       } catch (error) {
         console.error('Error fetching exchange rate:', error);

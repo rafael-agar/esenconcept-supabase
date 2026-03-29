@@ -373,23 +373,53 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
       // 3. Insert variants if any
       if (product.variants && product.variants.length > 0) {
-        const variantsToInsert = product.variants.map(v => ({
-          product_id: productData.id,
-          color: v.color,
-          color_code: v.colorCode,
-          size: v.size,
-          stock: v.stock,
-          damaged_stock: v.damagedStock || 0,
-          price: v.price || null,
-          sku: v.sku || null,
-          image_url: v.imageUrl || null
-        }));
+        const variantsToInsert = product.variants.map(v => {
+          const variant: any = {
+            product_id: productData.id,
+            color: v.color,
+            color_code: v.colorCode,
+            size: v.size,
+            stock: v.stock,
+            damaged_stock: v.damagedStock || 0,
+            price: v.price || null,
+            sku: v.sku || null,
+            image_url: v.imageUrl || null
+          };
+          
+          // Ensure we have an ID if the database doesn't auto-generate it
+          if (v.id && !v.id.startsWith('temp-')) {
+            variant.id = v.id;
+          } else if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            variant.id = crypto.randomUUID();
+          }
+          
+          return variant;
+        });
 
         const { error: variantsError } = await supabase
           .from('product_variants')
           .insert(variantsToInsert);
 
         if (variantsError) throw variantsError;
+      }
+
+      // 4. Insert bundle items if any
+      if (product.isBundle && product.bundleItems && product.bundleItems.length > 0) {
+        const bundleItemsToInsert = product.bundleItems.map(item => ({
+          parent_product_id: productData.id,
+          child_product_id: item.productId,
+          child_variant_id: item.variantId || null,
+          quantity: item.quantity
+        }));
+
+        const { error: bundleError } = await supabase
+          .from('product_bundle_items')
+          .insert(bundleItemsToInsert);
+
+        if (bundleError) {
+          console.error('Error saving bundle items:', bundleError);
+          // Don't throw here to not break the whole product creation if bundle items fail
+        }
       }
 
       await fetchData(); // Refresh list
@@ -548,6 +578,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
             };
             if (v.id && !v.id.startsWith('temp-')) {
               variant.id = v.id;
+            } else if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+              variant.id = crypto.randomUUID();
             }
             return variant;
           });
@@ -558,6 +590,39 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
 
           if (variantsError) throw variantsError;
         }
+      }
+      
+      // 4. Handle bundle items
+      if (updatedProduct.isBundle && updatedProduct.bundleItems) {
+        // Delete existing bundle items
+        await supabase
+          .from('product_bundle_items')
+          .delete()
+          .eq('parent_product_id', updatedProduct.id);
+
+        // Insert new bundle items
+        if (updatedProduct.bundleItems.length > 0) {
+          const bundleItemsToInsert = updatedProduct.bundleItems.map(item => ({
+            parent_product_id: updatedProduct.id,
+            child_product_id: item.productId,
+            child_variant_id: item.variantId || null,
+            quantity: item.quantity
+          }));
+
+          const { error: bundleError } = await supabase
+            .from('product_bundle_items')
+            .insert(bundleItemsToInsert);
+
+          if (bundleError) {
+            console.error('Error updating bundle items:', bundleError);
+          }
+        }
+      } else if (!updatedProduct.isBundle) {
+        // If it's no longer a bundle, remove any existing items
+        await supabase
+          .from('product_bundle_items')
+          .delete()
+          .eq('parent_product_id', updatedProduct.id);
       }
       
       // Update local state immediately for better UX
